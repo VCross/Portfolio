@@ -1,0 +1,160 @@
+Filename: Room 1 - Chargen Start
+Date: December 2013
+Programmer: Vincent Cross
+
+Purpose:
+
+This file contains the relevant code related to the first room of the chargen. This room has two purposes. The first is to introduce people to the chargen system. The second is to allow them to create their charbits.
+
+Charbit requirements:
+
+- Name
+- Password
+
+When a player creates a character, both their host and the time of creation are recorded on the charbit they used. This is then checked if they attempt to create another character. They are limited to creating one every 24 hours.
+
+Guests are similar, in that their host, time of (last) creation and number of attempts are recorded on the charbit. If they create more than 3, they are locked out until staff clear them, or 24 hours passes.
+
+Chargen Code: #1489
+Generic Room Parent: #333
+
+--Room Creation
+//
+This section contains the code necessary to create the room. It is expected to be performed from the hub of the OOC Nexus, or wherever the chargen will start from.
+!//
+
+@dig Chargen 1 - Start=Chargen Start;cs;chargen;start;chargen start,Back;b;back
+CS
+@parent here=#333
+@set here=!no_command
+@set here=wizard
+@desc here=Welcome to the Macross: New Horizon chargen! These rooms will guide you through the chargen process and help you with creating your character. Before you can go through this process you will need a new character. A new character requires two things, a name and a password. Below is the command to create a character:%r%r[ansi(ch,+create <name>:<password>)]%r%rNote: Admin reserve the right to rename your character if it uses an inappropriate name.
+
+!--
+
+--command +create
+//
+This is the main command for creating a new character. It requires two arguments, a name and password, then runs the code to create the character. It uses the format +create <name>:<password>
+
+In:
+    %0 - Name
+    %1 - Password
+!//
+
+&cmd_+create here=$+create *\:*:think [u(#1489/create,[secure([decompose(%0)])],[secure([decompose(%1)])])]
+
+!--
+
+--function create
+//
+The main run code for the creation of a character. Performs a number of checks to ensure everyting is satisfactory, then attempts to create the character. Has two parameters, the name and password of the character.
+
+In:
+    %0 - Name
+    %1 - Password
+
+Registers:
+    newDbref - Dbref of the new character.
+!//
+
+&create #1489=[if([cand([u(create`validateplayer)],[u(create`validatename,%0)])],[u(create`createchar,%0,%1)])]
+
+!--
+
+--function create`validateplayer
+//
+This checks the calling player to see if they have already created a character in the past. If they have, it sees if it was within the last 24 hours. If it was, it checks if they are an existing character or a guest. For the former, they cannot create a new character. For the latter, it checks their number of attempts. If 3, they cannot create another character.
+
+Out:
+    1 or 0
+!//
+
+&create`validateplayer #1489=[if([cand([not([isadmin(%#)])],[hasattrval(%#,chargen`limit)])],[u(create`validateplayer`checklimit)],1)]
+
+&create`validateplayer`checklimit #1489=[if([gt([sub([secs()],[get(%#/chargen`limit)])],86400)],1,[if([haspower(%#,Guest)],[u(create`validateplayer`checklimit`guest)],[pemit(%#,Error - You have already created a character within the past 24 hours.)]0)])]
+
+&create`validateplayer`checklimit`guest #1489=[if([match([get(%#/chargen`limit`host)],[get(%#/lastsite)])],[if([gte([get(%#/chargen`limit`count)],3)],[pemit(%#,Error - You have already created three characters in the past 24 hours. Please speak to admin if you believe this is wrong or there is a problem.)]0,1)],[attrib_set(%#/chargen`limit`host)][attrib_set(%#/chargen`limit`count)][attrib_set(%#/chargen`limit)]1)]
+
+!--
+
+--function create`validatename
+//
+First checks to see if the name is too long, then if it contains any inappropriate words, then if it matches any blacklisted names. Has one parameter, the name given.
+
+In:
+    %0 - The requested name.
+Out:
+    1 or 0
+!//
+
+&create`validatename #1489=[cand([u(create`validatename`length,%0)],[u(create`validatename`inappropriate,%0)],[u(create`validatename`blacklist,%0)])]
+
+&create`validatename`length #1489=[if([gt([strlen(%0)],15)],[pemit(%#,Error - Name is too long. Max length is 15 characters.)]0,1)]
+
+&create`validatename`inappropriate #1489=[setq(notfound,1)][if([isadmin(%#)],1,[null([iter([v(create`validatename`inappropriate`list)],[if([strmatch([edit(%0,%b,)],*##*)],[pemit(%#,Error - Inappropriate word in the requested name. If you feel this is incorrect, please contact staff.)][setq(notfound,0)][ibreak()])],|)])]%q<notfound>)]
+
+&create`validatename`inappropriate`list #1489=ahole|anus|ash0le|asholes|assmonkey|assface|assh0le|asshole|assholz|asswipe|azzhole|bassterds|bastardz|basterds|basterdz|biatch|boffing|butthole|buttwipe|c0k|carpetmuncher|clit|cnts|cntz|crap|dild0|dilld0|dilld0s|dominatricks|dominatrics|dominatrix|enema|fuck|fag1t|faget|fagg1t|faggit|faggot|fagit|fagz|faig|faigs|fart|fukah|fuken|fuker|fukin|fukk|fukkah|fukken|fukker|fukkin|g00k|gayboy|gaygirl|god-damned|goddamned|h00r|h0ar|h0re|hoar|hoor|hoore|jerk-off|jerkoff|jisim|jiss|jizm|kunt|lezzian|lipshits|lipshitz|masochist|masokist|massterbait|masstrbait|masstrbate|masterbaiter|masterbate|mothafucker|mothafuker|mothafukkah|mothafukker|motherfukah|motherfuker|motherfukkah|motherfukker|mother-fucker|muthafucker|muthafukah|muthafuker|muthafukkah|muthafukker|n1gr|nastt|nigur|niiger|niigr|orafis|orgasim|orgasm|orgasum|oriface|orifice|orifiss|pecker|peeenus|peeenusss|peenus|peinus|pen1s|penas|penis|penus|penuus|Phuc|Phuk|pr1c|pr1k|pusse|pussy|queer|qweer|qweir|recktum|rectum|retard|sadist|scank|schlong|screwing|semen|sh!t|sh1t|shit|Shyt|skanck|skank|son-of-a-bitch|sonofabitch|turd|va1jina|vag1na|vagiina|vagina|vaj1na|vajina|vullva|vulva|wh00r|wh0re|xrated|xxx|b!+ch|blowjob|arschloch|b!tch|b17ch|b1tch|bastard|bi+ch|c0ck|cawk|chink|dildo|dirsa|ejakulate|fatass|fcuk|fux0r|jism|kawk|l3itch|l3i+ch|lesbian|masturbate|masterbat3|motherfucker|s.o.b.|mofo|nazi|nigga|nigger|nutsack|phuck|pimpis|scrotum|shemale|shi+|sh!+|slut|smut|teets|boobs|b00bs|testical|testicle|w00se|jackoff|wank|whoar|whore|damn|dyke|amcik|andskota|arse|assrammer|ayir|bi7ch|bitch|bollock|breasts|butt-pirate|cabron|cazzo|chraa|chuj|Cock|cunt|d4mn|daygo|dick|dike|dupa|ejackulate|fanny|ficken|foreskin|h0r|h4x0r|jizz|lesbo|nazis|poop|porn|p0rn|pr0n|preteen|queef|schmuck|screw
+
+&create`validatename`blacklist #1489=[setq(notfound,1)][if([isadmin(%#)],1,[null([iter([v(create`validatename`blacklist`list)],[if([strmatch(%0,*##*)],[pemit(%#,Error - You cannot use that name. If you feel this is incorrect, please contact staff.)][setq(notfound,0)][ibreak()],1)],|)])]%q<notfound>)]
+
+&create`validatename`blacklist`list #1489=basara
+
+!--
+
+--function create`createchar
+//
+Once all the checks have been passed, this code runs in order to create the character object.
+
+In:
+    %0 - The requested name.
+    %1 - The requested password.
+
+Registers Out:
+    newDbref - Dbref of the newly created character.
+!//
+
+&create`createchar #1489=[u(create`createchar`chargenlimit)][u(create`createchar`charbit,%0,%1)][switch(%q<newDbref>,#-1,[u(create`fail)],[u(create`setup,%1)])]
+
+&create`createchar`chargenlimit #1489=[attrib_set(%#/chargen`limit,[secs()])][set(%#/chargen`limit,w)][set(%#/chargen`limit,m)][attrib_set(%#/chargen`limit`host,[get(%#/lastsite)])][if([haspower(%#,Guest)],[attrib_set(%#/chargen`limit`count,[if([hasattrval(%#/chargen`limit`count)],[add(1,[get(%#/chargen`limit`count)])],1)])])][set(%#/chargen,m)][set(%#/chargen,d)]
+
+&create`createchar`charbit #1489=[setq(newDbref,[pcreate(%0,%1)])]
+
+&create`fail #1489=[pemit(%#,Error - Could not create character. Most likely invalid characters in name.)]
+
+!--
+
+--function create`setup
+//
+Now that the character has been created, it has to be set up.
+
+In:
+    %0 - The password used.
+
+Registers In:
+    newDbref - Dbref of the new character object.
+    
+Registers
+    locks - A space separated list of attributes that need to be wizard locked and set mortal dark
+!//
+
+&create`setup #1489=[u(create`setup`nominationsreset)][u(create`setup`basic)][u(create`setup`sheet)][u(create`setup`chargen)][u(create`setup`lock)][u(create`setup`finish,%0)]
+
+/// Clears nominations and medals in case the existing dbref had some.
+&create`setup`nominationsreset #1489=[iter([lattr(#751/*`%q<newDbref>)],[attrib_set(#751/[itext(0)])])][attrib_set(#780/medals.received`%q<newDbref>)]
+
+/// A basic setup for all characters.
+&create`setup`basic #1489=[attrib_set(%q<newDbref>/homeloc,#9)][setq(locks,homeloc)][attrib_set(%q<newDbref>/mem_faction,0)][attrib_set(%q<newDbref>/adescribe,think \%N just looked at your description.)][attrib_set(%q<newDbref>/afinger,1)][set(%q<newDbref>,color)][setq(locks,%q<locks> mem_faction)]
+
+/// Sets all the character's stats and skills to 0, and HP and SP to base levels.
+&create`setup`sheet #1489=[iter([lattr(#80/XY`*)],[attrib_set(%q<newDbref>/##,0)])][attrib_set(%q<newDbref>/xy`7,100)][attrib_set(%q<newDbref>/xy`7`c,100)][attrib_set(%q<newDbref>/xy`8,100)][attrib_set(%q<newDbref>/xy`8`c,100)][setq(locks,%q<locks> xy)]
+
+/// Prepares the char for the chargen process
+&create`setup`chargen #1489=[attrib_set(#1489/db`%q<newDbref>,[secs()])][attrib_set(#1489/db`%q<newDbref>`2`status,I)][attrib_set(#1489/db`%q<newDbref>`status,NS)]
+
+/// Locks all the attributes that need to be locked.
+&create`setup`lock #1489=[iter(%q<locks>,[set(%q<newDbref>/##,w)][set(%q<newDbref>/##,m)])]
+
+&create`setup`finish #1489=[tel(%q<newDbref>,[loc(%#)])][pemit(%#,[ansi(ch,Congratulations! Your new character, ' [ansi(wh,[name(%q<newDbref>)])] ' has been created with the password ' [ansi(wh,%0)] '.)])]
+
+
+!--

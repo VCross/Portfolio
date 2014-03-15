@@ -1,0 +1,186 @@
+Vehicle Factory
+
+
+
+------------+vparents-----------
+
+&vparents_cmd fac=$+vparents:think [pemit(%#,[ansi(bh,[repeat(=,12)])][ansi(yh,%bVehicle Parents%b)][ansi(bh,[repeat(=,12)])]%rVariable Fighter Parent: [ansi(ch,#595)]%rFighter Craft Parent: [ansi(ch,#809)]%rDestroid/Tank Parent: [ansi(ch,#810)]%rPower Armor Parent: [ansi(ch,#811)]%r[ansi(bh,[repeat(=,41)])])]
+
+------------+vmodels------------
+
+&vmodellist`first fac=[align(1. 74 1.,[ansi(bh,|)],[ansi(wh,[name(%q1)])]\([num(%q1)]\),[ansi(bh,|)])]%r[align(1. 8 16 17 11 11 6 1.,[ansi(bh,|)],[ansi(yh,Ty:)]%b[get(%q1/yz`6)],[ansi(yh,Mo:)]%b[get(%q1/yz`10)],[ansi(yh,Na:)]%b[get(%q1/yz`8)],[ansi(yh,MHP:)]%b[get(%q1/yz`1)],[ansi(yh,MB:)]%b[get(%q1/yz`2)],[ansi(yh,Ar:)]%b[get(%q1/xy`a)],[ansi(bh,|)])]
+
+&vmodellist`second fac=[align(1. 8 8 8 8 8 8 20 1.,[ansi(bh,|)],[ansi(yh,Tar:)]%b[get(%q1/xy`b)],[ansi(yh,Spd:)]%b[get(%q1/xy`c)],[ansi(yh,Int:)]%b[get(%q1/xy`d)],[ansi(yh,St:)]%b[get(%q1/xy`e)],[ansi(yh,Sen:)]%b[get(%q1/xy`f)],[ansi(yh,Spi:)]%b[get(%q1/xy`g)],,[ansi(bh,|)])]
+
+&vmodeldet_cmd fac=$+vmodels *:think [setq(1,%0)][pemit(%#,[header([name(%q1)]'s Details)]%r[u(vmodellist`first)]%r[u(vmodellist`second)]%r[u(vmodellist`third)]%r[u(vmodellist`fourth)]%r[u(vmodellist`fifth)]%r[ansi(bh,+[repeat(-,76)]+)]
+
+&vmodellist_cmd fac=$+vmodels:think [pemit(%#,[header([name(me)]'s List of Model Templates)]%r[iter([lcon(me)],[setq(1,##)][u(vmodellist`first)]%r[u(vmodellist`second)]%r[ansi(bh,+[repeat(-,76)]+)],,%r)])]
+
+&vmodellist_cmd fac=$+vmodels:think [pemit(%#,[header([name(me)]'s List of Model Templates)]%r[iter([lcon(me)],[setq(1,##)][align(1. 74 1.,[ansi(bh,|)],[ansi(wh,[name(%q1)])]\([num(%q1)]\),[ansi(bh,|)])],,%r)]%r[ansi(bh,+[repeat(-,76)]+)])]
+
+--------------------------------
+
+&vmodellist_cmd fac=$+vmodels:think [pemit(%#,[header([name(me)]'s List of Model Templates)]%r[iter([lcon(me)],[setq(1,##)][u(vmodellist`first)]%r[u(vmodellist`second)]%r[u(vmodellist`third)]%r[u(vmodellist`fourth)]%r[u(vmodellist`fifth)],,%r)]%r[ansi(bh,+[repeat(-,76)]+)])]
+
+&vmodellist`first fac=[align(1. 74 1.,[ansi(bh,|)],[ansi(wh,[name(%q1)])]\([num(%q1)]\),[ansi(bh,|)])]%r[align(1. 11 16 22 22 1.,[ansi(bh,|)],,[ansi(yh,Type:)]%b[get(%q1/yz`6)],[ansi(yh,Model:)]%b[get(%q1/yz`10)],[ansi(yh,Name:)]%b[get(%q1/yz`8)],[ansi(bh,|)])]
+
+&vmodellist`second fac=[align(1. 11 16 45 1.,[ansi(bh,|)],,[ansi(yh,Max HP:)]%b[get(%q1/yz`1)],[ansi(yh,Max Barrier:)]%b[get(%q1/yz`2)],[ansi(bh,|)])]
+
+&vmodellist`third fac=[align(1. 11 16 22 22 1.,[ansi(bh,|)],,[ansi(yh,Armor:)]%b[get(%q1/xy`a)],[ansi(yh,Targeting:)]%b[get(%q1/xy`b)],[ansi(yh,Speed:)]%b[get(%q1/xy`c)],[ansi(bh,|)])]
+
+&vmodellist`fourth fac=[align(1. 11 16 22 22 1.,[ansi(bh,|)],,[ansi(yh,Intercept:)]%b[get(%q1/xy`d)],[ansi(yh,Stealth:)]%b[get(%q1/xy`e)],[ansi(yh,Sensors:)]%b[get(%q1/xy`f)],[ansi(bh,|)])]
+
+&vmodellist`fifth fac=[align(1. 11 62 1.,[ansi(bh,|)],,[ansi(yh,Spiritia Amp.:)]%b[get(%q1/xy`g)],[ansi(bh,|)])]
+
+-------------+vnewmodel----------
+
+&vnewmodel_cmd fac=$+vnewmodel:think [setr(1,[create(Blank Template)])][set(%q1,!no_command)][set(%q1,quiet)][set(%q1,audible)][set(%q1,enteR_ok)][set(%q1,monitor)][set(%q1,listen:*)][set(%q1,istemplate:1)][set(%q1,vehicle:1)][link%q1,#455)][tel(%q1,[loc(me)])][emit([namE(me)]'s production line rolls out a very old, very war torn vehicle. A worker walks up, pulls off the 'Unfit for Use' sticker, then hands %N the keys to %p new Blank Template.)]
+
+-------------+vmodelrem----------
+
+&vmodelrem_cmd fac=$+vmodelrem *:think [setq(1,[after([escape(%0)],\\)])][u(vmodelrem`check`1)]
+
+&vmodelrem`check`1 fac=[if([strmatch(%q1,#*)],[u(vmodelrem`check`2)],[pemit(%#,Error, please use the object's DBREF.)])]
+
+&vmodelrem`check`2 fac=[switch([match([loc(%q1)],[num(me)])],1,[u(vmodelrem`check`3)],[pemit(%#,Error, that is not a template registered with this tool.)])]
+
+&vmodelrem`check`3 fac=[switch([hastype(%q1,thing)],1,[u(vmodelrem`check`4)],[pemit(%#,Error, that is not an object. I don't know how it got into me. Please tell it to get out.)])]
+
+&vmodelrem`check`4 fac=[switch([get(%q1/istemplate)],1,[u(vmodelrem`run)],[pemit(%#,Error, that is not a valid template. I don't know what it is doing inside me. Please contact someone for help.)])]
+
+&vmodelrem`run fac=[tel(%q1,[loc(me)])][set(me,vcreate`model.list:[before([v(vcreate`model.list)],%q1)][after([v(vcreate`model.list)],%q1%b)])][pemit(%#,[name(%q1)] is no longer a template in [name(me)].)][emit(A panel on the side of [name(me)] opens and suddenly a [name(%q1)] comes flying out and lands in a garbage bin.)]
+
+-------------+vmodeladd---------
+
+&vmodeladd_cmd fac=$+vmodeladd *:think [setq(1,[after([escape(%0)],\\)])][u(vmodeladd`check`1)]
+
+&vmodeladd`check`1 fac=[if([strmatch(%q1,#*)],[u(vmodeladd`check`2)],[pemit(%#,Error, please use the object's DBREF.)])]
+
+&vmodeladd`check`2 fac=[switch([hastype(%q1,thing)],1,[u(vmodeladd`check`3)],[pemit(%#,Error, that is not an object.)])]
+
+&vmodeladd`check`3 fac=[switch([get(%q1/istemplate)],1,[u(vmodeladd`check`4)],[pemit(%#,Error, that is not a valid template. Please contact someone for help.)])]
+
+&vmodeladd`check`4 fac=[switch([match([loc(%q1)],[loc(me)])],1,[tel(%q1,me)][set(me,vcreate`model.list:[v(vcreate`model.list)] %q1)][pemit(%#,[name(%q1)] has been added to [name(me)] as a template vehicle.)][emit(A small forklift drives out of [name(me)] and over to the [name(%q1)]. It picks it up and transports the template inside.)],[pemit(%#,Error, template must be in the same room as [name(me)].)])]
+
+--------------+vblank--------
+
+&vblank_cmd fac=$+vblank *=*:think [setq(1,[after([escape(%0)],\\)])][setq(a,[after([escape(%1)],\\)])][setq(2,[num(*%qa)])][u(vblank`check`1)]
+
+&vblank`check`1 fac=[if([hastype(%q2,player)],[u(vblank`run)],[pemit(%#,Error, no such player can be found.)])]
+
+&vblank`run fac=[setr(a,[create(%q1)])][name(%qa,[name(%q2)]'s %q1 \([after(%qa,#)]\))][set(%qa,vehicle:1)][set(%qa,yz`9:%q2)][set(%qa,quiet)][set(%qa,!no_command)][set(%qa,audible)][set(%qa,monitor)][set(%qa,enter_ok)][set(%qa,listen:*)][link(%qa,#455)][if([hasattrval(#829,reg`%q2)],[set(#829,reg`%q2:[insert([get(#829/reg`%q2)],-1,%qa)])],[set(#829,reg`%q2:%qa)])][u(vblank`locks)]
+
+&vblank`locks fac=[null([lock(%qa/use,[location.lock/%qa & [get(%qa/yz`9)] |location.lock/%qa & isstaff/1])])][null([lock(%qa,%q2)])][set(%qa,lock.list:%q2)][u(vblank`finish)]
+
+&vblank`finish fac=[emit([name(me)] suddenly disappears. For a moment, nothing happens. Then, it reappears, with a shiny new %q1 sitting nearby. Despite it's unusual arrival, it is quite clearly [name(%q2)]'s machine.)][tel(%qa,[loc(me)])]
+
+------------+vset-----------
+
+&vset_cmd fac=$+vset *=*=*:think [setq(1,[after([escape(%0)],\\)])][setq(2,[after([escape(%1)],\\)])],[setq(3,[after([escape(%2)],\\)])][u(vset`check`1)]
+
+&vset`check`1 fac=[if([strmatch(%q1,#*)],[u(vset`check`2)],[pemit(%#,Error, please use the object's DBREF.)])]
+
+&vset`check`2 fac=[if([get(%q1/vehicle)],[u(vset`check`3)],[pemit(%#,Error, that object is not a vehicle.)])]
+
+&vset`check`3 fac=[switch([match([iter([lattr(#730/??`*)],[if([strmatch([get(#730/##)],*%q2*)],1[setq(4,##)],0)])],1)],0,[pemit(%#,Error, no such vehicle attribute has been found.)],[u(vset`check`4)])]
+
+&number.stats fac=xy`a xy`b xy`c xy`d xy`e xy`f xy`g yz`1 yz`2 yz`4
+
+&vset`check`4 fac=[if([match([v(number.stats)],%q4)],[u(vset`check`5)],[u(vset`check`7)])]
+
+&vset`check`5 fac=[if([isnum(%q3)],[u(vset`check`6)],[pemit(%#,Error, that value is not a number.)])]
+
+&vset`check`6 fac=[if([lt(%q3,0)],[pemit(%#,Error, value cannot be less than zero.)],[u(vset`run)])]
+
+&vset`check`7 fac=[if([strmatch(Primary Pilot,%q2)],[pemit(%#,Error, please use +transfer inside the vehicle to transfer the Primary Pilot.)],[u(vset`check`8)])]
+
+&vset`check`8 fac=[if([strmatch(Type,%q2)],[switch(%q3,VF,[set(%q1,yz`5:G)][set(%q1,yz`6:VF)][parent(%q1,#595)][u(vset`typemes)],FW,[set(%q1,yz`6:FW)][parent(%q1,#809)][u(vset`typemes)],D,[set(%q1,yz`6:D)][parent(%q1,#810)][u(vset`typemes)],PA,[set(%q1,yz`6:PA)][parent(%q1,#811)][u(vset`typemes)],T,[set(%q1,yz`6:T)][parent(%q1,#810)][u(vset`typemes)],[pemit(%#,That is not a valid type. Please choose between: [ansi(ch,VF)] - Variable Fighter, [ansi(ch,FW)] - Fixed Wing, [ansi(ch,D)] - Destroid, [ansi(ch,PA)] - Power Armor, [ansi(ch,T)] - Tank.)])],[u(vset`run)])]
+
+&vset`typemes fac=[pemit(%#,[name(%q1)]'s stat of [capstr(%q2)] has been set to %q3.)]
+
+&vset`run fac=[set(%q1,%q4:%q3)][set(%q1,%q4`c:%q3)][pemit(%#,[name(%q1)]'s stat of [capstr(%q2)] has been set to %q3.)]
+
+---------+vstatset--------------
+
+1:Vehicle #
+2:Armor (xy`a)
+3:Targeting (xy`b)
+4:Speed (xy`c)
+5:Intercept (xy`d)
+6:Stealth (xy`e)
+7:Sensors (xy`f)
+8:Spiritia Amp. (xy`g)
+
+&vstatset_cmd fac=$+vstatset *=*|*|*|*|*|*|*:think [setq(1,[after([escape(%0)],\\)])][setq(2,[after([escape(%1)],\\)])][setq(3,[after([escape(%2)],\\)])][setq(4,[after([escape(%3)],\\)])][setq(5,[after([escape(%4)],\\)])][setq(6,[after([escape(%5)],\\)])][setq(7,[after([escape(%6)],\\)])][setq(8,[after([escape(%7)],\\)])][u(vstatset`check`1)]
+
+&vstatset`check`1 fac=[if([strmatch(%q1,#*)],[u(vstatset`check`2)],[pemit(%#,Error, please use the object's DBREF.)])]
+
+&vstatset`check`2 fac=[switch([get(%q1/vehicle)],1,[u(vstatset`check`3)],[pemit(%#,Error, that object is not a vehicle.)])]
+
+&vstatset`check`3 fac=[switch([match([iter(1 2 3 4 5 6 7 8,[switch([words(%q##)],0,0,1)])],0)],0,[u(vstatset`check`4)],[pemit(%#,Error, one or more of the variables are empty.)])]
+
+&vstatset`check`4 fac=[if([isnum(%q2%q3%q4%q5%q6%q7%q8)],[u(vstatset`check`5)],[pemit(%#,Error, one or more of the attributes in that status list are not numbers when they are supposed to be.)])]
+
+&vstatset`check`5 fac=[switch([match([iter(2 3 4 5 6 7 8,[if([lt(%q##,0)],1,0)])],1)],0,[u(vstatset`run)],[pemit(%#,Error, values cannot be less than zero.)])]
+
+&vstatset`run fac=[set(%q1,xy`a:%q2)][set(%q1,xy`a`c:%q2)][set(%q1,xy`b:%q3)][set(%q1,xy`b`c:%q3)][set(%q1,xy`c:%q4)][set(%q1,xy`c`c:%q4)][set(%q1,xy`d:%q5)][set(%q1,xy`d`c:%q5)][set(%q1,xy`e:%q6)][set(%q1,xy`e`c:%q6)][set(%q1,xy`f:%q7)][set(%q1,xy`f`c:%q7)][set(%q1,xy`g:%q8)][set(%q1,xy`g`c:%q8)][u(vstatset`finish)]
+
+&vstatset`finish fac=[emit(Seven burly workers rush out of [name(me)] and over to [name(%q1)]. They begin hitting it with various tools until its stats have changed to: Armor: %q2, Targeting: %q3, Speed: %q4, Intercept: %q5, Stealth: %q6, Sensors: %q7, Spiritia Amp.: %q8.)]
+
+@set fac/vstatset`check`4=regexp
+
+--------------+vcustom FAIL-----------------
+
+&vstatset`check`1 fac=[switch([match([iter(1 2 3 4 5 6 7 8 9 a b c d,[switch([words(%q##)],0,0,1)])],1)],1,[u(vcustom`check`2)],[pemit(%#,Error, one or more of the variables are empty.)])]
+
+&vstatset`check`2 fac=[if([match(VF,%q1)],[u(vcustom`check`3)],[pemit(%#,Error, not a valid type. Please choose VF.)])]
+
+&vstatset`check`3 fac=[if([hastype(%q2,player)],[u(vcustom`check`4)],[pemit(%#,Error, no such player can be found.)])]
+
+&vstatset`check`4 fac=[if([regmatch(%q5 %q6 %q7 %q8 %q9 %qa %qb %qc %qd,(\[a-z\]+))],[pemit(%#,Error, one or more of the attributes in that status list are not numbers when they are supposed to be.)],[u(vcustom`run)])]
+
+@set fac/vstatset`check`4=regexp
+
+&vstatset`run fac=[setr(e,[create([name(%q2)]'s %q4)])][set(%qe,yz`6:%q1)][set(%qe,yz`9:%q2)][set(%qe,yz`8:%q3)][set(%qe,yz`10:%q4)][set(%qe,xy`a:%q5)][set(%qe,xy`a`c:%q5)][set(%qe,xy`b:%q6)][set(%qe,xy`b`c:%q6)][set(%qe,xy`c:%q7)][set(%qe,xy`c`c:%q7)][set(%qe,xy`d:%q8)][set(%qe,xy`d`c:%q8)][set(%qe,xy`e:%q9)][set(%qe,xy`e`c:%q9)][set(%qe,xy`f:%qa)][set(%qe,xy`f`c:%qa)][set(%qe,xy`g:%qb)][set(%qe,xy`g`c:%qb)][set(%qe,yz`1:%qc)][set(%qe,yz`1`c:%qc)][set(%qe,yz`2:%qd)][set(%qe,yz`2`c:%qd)][u(vcustom`locks)]
+
+&vstatset`locks fac=[null([lock(%qe/use,[location.lock/%qe & [get(%qe/yz`9)] |location.lock/%qe & isstaff/1])])][null([lock(%qe,%q2)])][u(vcustom`finish)]
+
+&vstatset`finish fac=[parent(%qe,#738)][set(%qc,quiet)][set(%qc,!no_command)][set(%qc,audible)][set(%qc,monitor)][set(%qc,enter_ok)][set(%qc,listen:*)][set(%qc,lock.list:%q2)][u(vcustom`message)][tel(%qe,[loc(me)])]
+
+&vstatset`message fac=[emit(Twenty beefy mill workers pile into [name(me)]. After a few hours of hard labour and lots of sweat, a brand new custom %q4 rolls off the production line. Congratulations %q2, it's yours. Don't scratch the custom paint job.)]
+
+-------------+vcreate short--------------
+
+&vcreate_cmd fac=$+vcreate *=*:think [setq(1,[after([escape(%0)],\\)])][setq(a,[after([escape(%1)],\\)])][setq(2,[num(*%qa)])][u(vcreate`check`1)]
+
+&vcreate`check`1 fac=[if([strmatch(%q1,#*)],[u(vcreate`check`2)],[pemit(%#,Error, please use the template's DBREF.)])]
+
+&vcreate`check`2 fac=[if([setr(3,[match([v(vcreate`model.list)],[num(%q1)])])],[u(vcreate`check`3)],[pemit(%#,Error, no such template.)])]
+
+&vcreate`check`3 fac=[if([hastype(%q2,player)],[u(vcreate`run)],[pemit(%#,Error, no such player can be found.)])]
+
+&vcreate`run fac=[setq(a,[extract([v(vcreate`model.list)],%q3,1)])][setr(c,[clone(%qa)])][u(vcreate`setup)]
+
+&vcreate`setup fac=[wipe(%qc/istemplate)][link(%qc,#455)][name(%qc,[name(%q2)]'s [get(%qa/yz`10)] \([after(%qc,#)]\))][set(%qc,yz`9:%q2)][set(%qc,lock.list:%q2)][u(vcreate`message)][if([hasattrval(#829,reg`%q2)],[set(#829,reg`%q2:[insert([get(#829/reg`%q2)],-1,%qc)])],[set(#829,reg`%q2:%qc)])][u(vcreate`lock)]
+
+&vcreate`lock fac=[null([lock(%qc/use,[location.lock/%qc & [get(%qc/yz`9)] |location.lock/%qc & isstaff/1])])][null([lock(%qc,%q2)])]
+
+&vcreate`message fac=[emit([name(me)] starts to make noise. After hours of welding, beating and honking sounds, a brand new [get(%qa/yz`10)] rolls off the production line. Congratulations [name(%q2)], you are now the primary pilot of a bouncing baby [get(%qa/yz`10)]. Don't drop it on its flight management system.)]
+
+------------+vcreate short OLDer------------
+
+&vcreate_cmd fac=$+vcreate *=*:think [setq(1,%0)][setq(2,[num(*%1)])][u(vcreate`check`1)]
+
+&vcreate`check`1 fac=[if([setr(3,[match([v(vcreate`model.list)],[num(%q1)])])],[u(vcreate`check`2)],[pemit(%#,Error, no such template.)])]
+
+&vcreate`check`2 fac=[if([hastype(%q2,player)],[u(vcreate`run)],[pemit(%#,Error, no such player can be found.)])]
+
+&vcreate`run fac=[setq(a,[extract([v(vcreate`model.list)],%q3,1)])][setr(c,[create([name(%q2)]'s [get(%qa/yz`10)])])][u(vcreate`setup)]
+
+&vcreate`setup fac=[iter([lattr(%qa/**)],[set(%qc,##:[get(%qa/##)])][set(%qc,##`c:[get(%qa/##)])])][set(%qc,yz`9:%q2)][set(%qc,quiet)][set(%qc,!no_command)][set(%qc,audible)][set(%qc,monitor)][set(%qc,enter_ok)][set(%qc,listen:*)][set(%qc,lock.list:%q2)][parent(%qc,[get(%qa/to.parent)])][u(vcreate`message)][tel(%qc,[loc(me)])][u(vcreate`lock)]
+
+&vcreate`lock fac=[null([lock(%qc/use,[location.lock/%qc & [get(%qc/yz`9)] |location.lock/%qc & isstaff/1])])]
+
+&vcreate`message fac=[emit([name(me)] starts to make noise. After hours of welding, beating and honking sounds, a brand new [get(%qa/yz`10)] rolls off the production line. Congratulations [name(%q2)], you are now the primary pilot of a bouncing baby [get(%qa/yz`10)]. Don't drop it on its flight management system.)]
+
+&vcreate`model.list fac=#736

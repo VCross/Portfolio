@@ -1,0 +1,47 @@
+These are examples of how using a buffer, to allow multiple +attacks and +defends as just one tick on buff duration, might play out in a scene where the buffed player is fighting multiple opponents.
+
+Buffer window: 3 minutes
+We're only focusing on UN1 as they are the only person fighting multiple opponents.
+
+Round 1:
+00:00 	- UN1 poses
+00:00 	- UN1 is successfully buffed for 3 duration (3 duration left)
+07:30 	- Pirate1 poses
+07:30 	- Pirate1 +attacks UN1
+10:20 	- Pirate2 poses
+10:20	- Pirate2 +attacks UN1
+14:10	- Pirate3 poses
+14:10	- Pirate3 +attacks UN1
+
+Round 2:
+15:40	- UN1(buffed) +defends against Pirate3 (no existing buffer, buffer starts at 15:40)
+16:10	- UN1(buffed) +defends against Pirate2
+16:40	- UN1(buffed) +defends against Pirate1
+23:10	- UN1 poses
+23:10	- UN1 +attacks Pirate1
+23:20	- UN1 +attacks Pirate2
+23:30	- UN1 +attacks Pirate3
+25:50	- Pirate1 +defends against UN1(buffed) (previous buffer of 15:40 has expired, -1 duration, 2 duration left, new buffer starts at 23:10)
+26:10	- Pirate2 +defends against UN1(buffed) (this +attack was made at 23:20, within the 23:10 buffer)
+32:30	- Pirate3 +defends against UN1(buffed) (Although the +defend takes place much later, still counts as within the buffer as the +attack was made at 23:30)
+33:10	- Pirate1 poses
+33:10	- Pirate1 +attacks UN1
+34:20	- Pirate2 poses
+34:20	- Pirate2 +attacks UN1
+39:00	- Pirate3 poses
+39:00	- Pirate3 +attacks UN1
+
+Round3:
+40:10	- UN1(buffed) +defends against Pirate3 (previous buffer of 23:10 has expired, -1 duration, 1 duration left, new buffer starts at 40:10)
+40:30	- UN1(buffed) +defends against Pirate2
+41:00	- UN1(buffed) +defends against Pirate1
+49:00	- UN1 poses
+49:00	- UN1 +attacks Pirate1
+49:40	- UN1 +attacks Pirate2
+50:20	- UN1 +attacks Pirate3
+52:10	- Pirate1 +defends against UN1(unbuffed) (previous buffer of 40:10 has expired, -1 duration, 0 duration left, no new buffer)
+54:40	- Pirate2 +defends against UN1(unbuffed)
+55:20	- Pirate3 +defends against UN1(unbuffed)
+
+
+The result is that the buff lasted long enough for UN1 to make three buffed action groups. He was buffed when he defended against the pirate attacks from the first round. He was buffed when he made the attacks against the pirates in the second round, and he was buffed when he defended against the pirates in the third round. He was NOT buffed when he attacked the pirates in the third round.

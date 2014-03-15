@@ -1,0 +1,63 @@
+Alright, finally getting around to writing this up. So while yes we aren't using all the code as how Yuri-player sorted it out we are going ahead with the new hit check math she proposed.
+
+As I briefly mentioned the roll mechanic will look thusly:
+
+1D30 + [(player stat+skill)/2] + (vehicle stat/8) + luck bonus + singer buff + accuracy mod
+
+Naturally all of the stat/skill, mods, etc. are all based upon what's applicable. If it was a stat check it'd just be 1D30 + (player stat/2) and so forth
+
+This means that the max bonus on a stat roll is +5, on a skill roll is +10, and a vehicle roll is +15 (vehicles have been de-emphasized a fair bit under this).
+
+The good news is under this system we don't have to sort out successes or the like, it's simply "high roll wins" with rolling a 1 being crit fail and rolling a 30 being a crit success
+
+Now before I go into what some values will be tweaked to it was stressed to me by Yuri-player that we do need to allow for decimal values in this, at least on the code front. We can represent the front end to the nearest whole number. This is because even a small bonus can be more significant now. As far as +sheet values this will mainly only come up in buffs and potentially in accuracy mods, otherwise I'm still aiming to keep things to whole numbers as much as possible to keep it from being miserable :P
+
+That said with +gscheck values these are the success thresholds I came up with. The objective for players will be to meet or get above these:
+
+S=Stat
+S+S=Stat + Skill
+SS+V=Stat+Skill + Vehicle
+
+Difficulty goes from Very Easy (VE) to Impossible (I) all the names remain as is :)
+
+	S  		S+S   	SS+V
+	2.5  	5     	7.5
+
+VE 	4.5		7		9.5
+E	7.5		10		12.5
+N	11.5	14		16.5
+H	17.5	20		22.5
+VH	23.5	26		28.5
+I	30.5	33		35.5
+
+With regards to weapons, etc. The basic mechanic for accuracy mods will remain the same. The only difference there is I need to be able to potentially set accuracy to not just whole numbers but decimals so .25, 1.5, etc. For these we'll simply have the code go to the nearest whole number so .25 would show up as 1 on vsheet and 1.5 would show as 2.
+Intercept is going to be dropped to a +5 bonus under the new system that actually amounts to doubling the max bonus granted by vehicle stats so there's good cause to keep it as a separate bonus!
+
+Luck meanwhile will also be dropped to +5, if possible and if you haven't done it already I'd like to set +luck to give a bonus on the next attack someone does (only standard attacks of course, the specialty ones can only be done on their own!)
+Geh so much to sort out here and trying to do it in order of importance.
+
+For macronized zentradi just treat their macronized bonus as a vehicle stat, so it'll be divided by 8 on any checks as well
+
+Ah! Right, as for armor mitigation I finally got my wants sorted out for that under this system. First off the static armor mitigation remains as is, so whatever the vehicle stat is at, that's the amount the armor reduces damage by default (unless of course they try to dodge, at which point it gets cut to 1/4 of its value). Second: when it comes to sorting out the roll bonus for an armor +gscheck or the like only count up to 40. I was gonna do something funky like take the armor stat and divide it by two but I assume that simply setting the ceiling at 40 for what the code will "see" is easier (if I'm wrong let me know! either works so we'll take whichever is less trouble for you!). Now as for bonus mitigation if they choose to defend while in battroid or gerwalk, do an armor check and then divide the result by 2. That will be the bonus armor mitigation, which cannot exceed 90% that ought to handle the possibility of ships going too far beyond this. We'll use a similar check on foot for when we get around to that part!
+
+Also with this in place I wanted to tweak how we did hit quality. Before I had done some stuff up to describe how the damage varies a bit but with the new code what I'd rather do is something a little cleaner. The idea will be instead to take the difference between the winning and losing roll when the attacker succeeds and make that into the damage bonus. So if the attacker beats the defender by only 2 then his weapons do 2% more damage (before armor of course), if it's a difference of say the attacker rolling a 30 and the defender getting 15, then there'd be a 15% damage bonus. 
+
+On a crit success for the attacker they get an automatic 50% damage boost. If the defender crit fails there's a 10% damage boost. If somehow (1 in 900 chance) that both happen at the same time we'll name that a "Super Critical" only for the sake of indicating something crazy rare just happened. The damage boost cannot exceed 60%
+
+Capships are going to get tricky now as currently their speed mods will be a bit much so there's a few possibilities I'm considering on how to tackle it. One will be to be able to set negative values for vehicle stats (negative speed on cap ships for instance). Another will be to actually set the code to differentiate between vehicle sizes (at least VFs and cap ships) and applying a dodge penalty for cap ships against VFs or somesuch. I'll let you tell me which one will be less trouble and I'll start working on rebalancing around that.
+
+I've got most things sorted out in my head for singer/spirita buffs too but I'll hold off on them while you sort through this. If you want me to send that along too let me know :)
+
+Also, Capship rolls for Armor will now be done by Star Ship Operation skill.
+
+If stats+skills is 14 or greater, add +1 bonus. If stats+skills is 19 or greater, add +2.
+
+Unorthodox Fail:
+
+<Admin> Xeero says, "hrm"
+<Admin> Xeero says, "Make it roll a normal diff gscheck first before attempting the attack"
+<Admin> Xeero says, "if they fail the gscheck double damage"
+
+<Admin> Astrus says, "Also, you still haven't really defined what happens when both players get a critical success or critical failure."
+<Admin> Xeero says, "hm. Treat crit fails like the old cross-counter but with both taking 75% of the attack damage instead of halving it"
+<Admin> Xeero says, "for crit success do the same but 25%"

@@ -1,0 +1,287 @@
+Name: +check
+Programmer: Vincent Cross (Astrus)
+Date: May 2013
+
+Purpose:
+
+This file contains the code for the modified +check command. The main +check command will go on the object #1418, while the majority of the code will go on the object #1419. From what I can gather from the requirements, the process of a +check is as follows:
+
+1) Select a stat/skill/vehicle stat
+2a) Get vehicle stat
+2b) Get associated skill
+2c) Get associated stat
+3) 1D30 + [(stat+skill)/2] + (vehicle stat/8) + luck bonus + singer buff (later) + weapon accuracy mod (not relevant here)
+4) Print result
+
+Command format:
+
++check Strength
++check Gunnery
++check Speed
+
+++++Code++++
+
+
+----cmd_+check----
+
+The basic command attribute which will be placed on #1418
+
+Example use:
++check Dexterity
+
+In:
+	%1: Requested stat/skill with modifier
+	
+&cmd_+check #1418=$+check *:think [setq(commandrun,1,error,0)][setq(result,[u(#1419/check,[decompose(%0)],%#)])];think [u(#1419/func`cango,#1419/check`result,%q<result>)];think [u(#1419/func`cango,#1419/duration`run,check,%#)]
+
+&cmd_+check2 #1418=$+check/personal *:think [setq(commandrun,1,error,0)][setq(result,[u(#1419/check,[decompose(%0)],%#,P)])];think [u(#1419/func`cango,#1419/check`result,%q<result>,P)];think [u(#1419/func`cango,#1419/duration`run,check,%#)]
+
+
+----check----
+
+This is the main check code, being run either by the command or by being called. It manages the rest of the check code.
+
+In:
+	%0 - The argument of the command/skill to check
+	%1 - The target of the check
+	%2: Special circumstances. Alters code depending upon passed value:
+		O - Special override, bypasses the skill checking. Used when the stat/skill is hardcoded
+		P - Personal combat override, ignores the vehicle the player is in when choosing h2h/melee/gunnery/spiritia skills
+		
+		
+Out:
+	A string in the format: <select type> <selected stat/skill/vstat>|<target dbref>|<result>
+	Eg: S xy`1|#619|9.5
+		
+&check #1419=[u(check`debug`base)][u(check`check,%1)][setr(tempresult,[u(func`cango,check`run,[switch(%2,OP,%0,O,%0,[u(func`cango,check`checkselection,[u(check`findselection,%0)],%1)])],[num(*%1)],%2)])][u(check`debug`result,%q<tempresult>)][unsetq(tempresult matchlist)]
+
+&check`check #1419=[u(check`check`isplayer,%0)][u(func`cango,check`check`isapproved,%0)]
+
+&check`check`isplayer #1419=[if([hastype(*%0,player)],,[setq(error,2)])]
+
+&check`check`isapproved #1419=[if([hasflag(*%0,approved)],,[setq(error,14)])]
+
+
+----check`findselection----
+
+This section of the code attempts to evaluate the player's selection, then check to see if it matches against a known stat/skill/vehicle stat.
+
+In:
+	%0 - The selection of the player.
+	
+Out: Returns the xy value of the chosen skill
+	
+&check`findselection #1419=[switch([words([setr(matchlist,[lattr(#1420/[edit(%0,%b,_)])])])],1,[get(#1420/%q<matchlist>)],[switch([words([setr(matchlist,[lattr(#1420/*[edit(%0,%b,_)]*)])])],1,[get(#1420/%q<matchlist>)],0,[setq(error,4)],[setq(error,3)])])]
+
+
+----check`checkselection----
+
+Checks to see if you have the selected skill.
+
+In:
+	%0 - The xy of the skill in question
+	%1 - The target of the check
+
+Out: Returns the xy value of the chosen skill, if it's valid
+
+&check`checkselection #1419=[if([get(%1/[last(%0)])],%0,[if([match(xy`537 xy`538 xy`539 xy`540 xy`541,[last(%0)])],[setq(error,32)],%0)])]
+
+
+
+----check`run----
+
+Runs through the check process with the given stat/skill/vehicle stat
+
+In:
+	%0 - The xy value of the stat/skill/vehicle stat, format: SK xy`101
+	%1 - The target's dbref
+	%2 - The special circumstances, if it applies
+	
+Registers:
+	result - The # result of the check
+	
+&check`run #1419=[u(check`run`[first(%0)],%0,%1,%2)]
+
+&check`run`diceroll #1419=[setr(roll,[die([u(global`check`dice`num)],[u(global`check`dice`sides)])])][u(check`debug`diceroll,%q<roll>)]
+
+
+
+----Luck----
+
+%0: Target
+
+&check`run`luck #1419=[if([and(%q<commandrun>,[get(%0/useluck)])],[u(check`run`luck`run,%0)],0)]
+
+&check`run`luck`run #1419=[u(check`debug`luck)][u(check`run`luck`commandrun,%0)]
+
+&check`run`luck`commandrun #1419=[attrib_set(%0/xy`6`c,[sub([get(%0/xy`6`c)],1)])][u(global`luckbonus)]
+
+
+
+----Stats----
+
+%0: xy value of stat (<type> xy`#)
+%1: target's dbref
+%2: Special circumstances
+
+
+&check`run`s #1419=%0|%1|[u(check`run`s`math,%0,%1,%2)]
+
+&check`run`s`math #1419=[add([u(check`run`diceroll)],[u(check`run`s`math`stat,%0,%1)],[u(check`run`s`macro,[last(%0)],%1,%2)],[u(check`run`luck,%1)])]
+
+&check`run`s`math`stat #1419=[setr(temp,[fdiv([get(%1/[last(%0)]`c)],[u(global`check`statskilldiv)])])][u(check`debug`stat,%q<temp>)][unsetq(temp)]
+
+
+
+%0: Stat
+%1: Target
+%2: Special circumstances
+
+&check`run`s`macro #1419=[if([match(xy`1 xy`3,%0)],[if([and([get(%1/macronized)],[or([not([get([u(func`attackervehicle,%1,[loc(%1)])]/vehicle)])],%2)])],[setr(w,[u(check`run`s`macro`math,%0,%1)])][u(check`debug`macro,%q<w>)][unsetq(w)],0)],0)]
+
+&check`run`s`macro`math #1419=[fdiv([mul([get(%1/%0)],[u(global`check`macro`bonus)])],[u(global`check`macro`div)])]
+
+
+----Skills----
+
+%0: xy value of stat (<type> xy`#)
+%1: target's dbref
+%2: Special override
+
+&check`run`sk #1419=[switch([last(%0)],xy`212,[u(check`run`sk`targeting,%0,%1,%2)],xy`102,[u(check`run`sk`targeting,%0,%1,%2)],xy`101,[u(check`run`sk`targeting,%0,%1,%2)],xy`537,[u(check`run`sk`amp,%0,%1,%2)],xy`538,[u(check`run`sk`amp,%0,%1,%2)],xy`539,[u(check`run`sk`amp,%0,%1,%2)],xy`540,[u(check`run`sk`amp,%0,%1,%2)],xy`541,[u(check`run`sk`amp,%0,%1,%2)],xy`542,[u(check`run`sk`amp,%0,%1,%2)],%0|%1|[u(check`run`sk`math,%0,%1,%2)])]
+
+&check`run`sk`math #1419=[add([u(check`run`diceroll)],[u(check`run`sk`math`statskill,%0,%1)],[u(check`run`s`macro,xy`[left([after([last(%0)],`)],1)],%1,%2)],[u(check`run`luck,%1)])]
+
+&check`run`sk`math`statskill #1419=[setq(temp,[fdiv([setr(x,[add([get(%1/[last(%0)])],[get(%1/xy`[left([after([last(%0)],`)],1)])])])],[u(global`check`statskilldiv)])])][if([gte(%q<x>,19)],[add(%q<temp>,[u(global`check`sacebonus)])][u(check`debug`sacebonus)],[if([gte(%q<x>,14)],[add(%q<temp>,[u(global`check`acebonus)])][u(check`debug`acebonus)],%q<temp>)])][u(check`debug`statskill,%q<temp>)][unsetq(x temp)]
+
+
+
+&check`run`sk`targeting #1419=[if([and([not([strmatch(%2,P)])],[get([u(func`attackervehicle,%1,[loc(%1)])]/vehicle)])],[u(check`run`sk`targeting`run,%0,%1)],%0|%1|[u(check`run`sk`math,%0,%1,%2)])]
+
+&check`run`sk`targeting`run #1419=VS [last(%0)]|%1|[u(check`run`sk`targeting`math,%0,%1)]
+
+&check`run`sk`targeting`math #1419=[add([u(check`run`diceroll)],[u(check`run`sk`math`statskill,%0,%1)],[setr(temp,[fdiv([get([u(func`attackervehicle,%1,[loc(%1)])]/xy`b`c)],[u(global`check`vstatdiv)])])][u(check`debug`vstat,%q<temp>)][unsetq(temp)],[u(check`run`luck,%1)])]
+
+
+
+&check`run`sk`amp #1419=[if([and([not([strmatch(%2,P)])],[get([u(func`attackervehicle,%1,[loc(%1)])]/vehicle)])],[u(check`run`sk`amp`run,%0,%1)],%0|%1|[u(check`run`sk`math,%0,%1,%2)])]
+
+&check`run`sk`amp`run #1419=VS [last(%0)]|%1|[u(check`run`sk`amp`math,%0,%1)]
+
+&check`run`sk`amp`math #1419=[add([u(check`run`diceroll)],[u(check`run`sk`math`statskill,%0,%1)],[setr(temp,[fdiv([get([u(func`attackervehicle,%1,[loc(%1)])]/xy`g`c)],[u(global`check`vstatdiv)])])][u(check`debug`vstat,%q<temp>)][unsetq(temp)],[u(check`run`luck,%1)])]
+
+
+----Vehicle Stats----
+
+%0: xy value of stat
+%1: target's dbref
+%2: Special override
+
+&check`run`vs #1419=[if([get([loc(%1)]/vehicle)],%0|%1|[u(check`run`vs`math,%0,%1)],[setq(error,7)])]
+
+&check`run`vs`math #1419=[add([u(check`run`diceroll)],[u(check`run`vs`math`statskill,%0,%1)],[u(check`run`vs`math`vstat,%0,%1)],[u(check`run`luck,%1)])]
+
+&check`run`vs`math`statskill #1419=[u(check`run`sk`math`statskill,[switch([last(%0)],xy`a,VS [if([get([u(func`attackervehicle,%1,[loc(%1)])]/carrier)],[u(#1420/armor`capskill)],[u(#1420/armor`skill)])],xy`b,[setq(error,5)]VS xy`101,xy`c,VS [if([get([u(func`attackervehicle,%1,[loc(%1)])]/carrier)],[u(#1420/speed`capskill)],[u(#1420/speed`skill)])],xy`d,VS [u(#1420/intercept`skill)],xy`e,VS [u(#1420/stealth`skill)],xy`f,VS [u(#1420/sensors`skill)],xy`g,[setq(error,6)]VS xy`537)],%1)]
+
+&check`run`vs`math`vstat #1419=[setr(temp,[fdiv([setq(z,[get([u(func`attackervehicle,%1,[loc(%1)])]/[last(%0)]`c)])][switch([last(%0)],xy`a,[mul(%q<z>,[u(global`check`armorpenalty)])][unsetq(z)],%q<z>[unsetq(z)])],[u(global`check`vstatdiv)])])][u(check`debug`vstat,%q<temp>)][unsetq(temp)]
+
+----check`result----
+
+Sends a message describing the result of the check.
+
+In:
+	%0 - Result of the check in format <type> <xy>|<target>|<result>
+	%1 - Special override
+
+This section of the code prints out the results of the +check.
+
+&check`result #1419=[remit([u(check`result`destination)],[u(check`result`[first(%0)],%0,%q<roll>,%1)])]
+
+
+----Stat:
+
+%0 - Result
+%1 - Roll
+%2 - Special circumstance
+
+&check`result`s #1419=[u(check`result`general,[ansi([u(color`check`select)],[get(#80/[last([first(%0,|)])])])],%0,%1,%2)]
+
+
+----Skill:
+
+%0 - Result
+%1 - Roll
+%2 - Special circumstance
+
+&check`result`sk #1419=[u(check`result`general,[ansi([u(color`check`select)],[u(check`result`sk`skill,%0)])][,] [ansi([u(color`check`select)],[u(check`result`sk`stat,%0)])],%0,%1,%2)]
+
+&check`result`sk`stat #1419=[get(#80/xy`[left([after([last([first(%0,|)])],`)],1)])]
+
+&check`result`sk`skill #1419=[get(#80/[last([first(%0,|)])])]
+
+
+----Vehicle Stat:
+
+%0 - Result
+%1 - Roll
+%2 - Special circumstance
+
+&check`result`vs #1419=[u(check`result`general,[ansi([u(color`check`select)],[u(check`result`vs`vstat,%0)])][,] [ansi([u(color`check`select)],[u(check`result`vs`skill,%0)])][,] [ansi([u(color`check`select)],[u(check`result`vs`stat,%0)])],%0,%1)]
+
+&check`result`vs`vstat #1419=[switch([last([first(%0,|)])],xy`212,Targeting,xy`102,Targeting,xy`101,Targeting,xy`537,Spiritia Amp,xy`538,Spiritia Amp,xy`539,Spiritia Amp,xy`540,Spiritia Amp,xy`541,Spiritia Amp,xy`542,Spiritia Amp,[get(#80/[last([first(%0,|)])])])]
+
+&check`result`vs`stat #1419=[switch([last([first(%0,|)])],xy`212,[u(check`result`vs`stat`targetamp,%0)],xy`102,[u(check`result`vs`stat`targetamp,%0)],xy`101,[u(check`result`vs`stat`targetamp,%0)],xy`537,[u(check`result`vs`stat`targetamp,%0)],xy`538,[u(check`result`vs`stat`targetamp,%0)],xy`539,[u(check`result`vs`stat`targetamp,%0)],xy`540,[u(check`result`vs`stat`targetamp,%0)],xy`541,[u(check`result`vs`stat`targetamp,%0)],xy`542,[u(check`result`vs`stat`targetamp,%0)],[get(#80/xy`[left([after([last([get(#1420/[edit([u(check`result`vs`skill,%0)],%b,_)])])],`)],1)])])]
+
+&check`result`vs`stat`targetamp #1419=[get(#80/xy`[left([after([last([first(%0,|)])],`)],1)])]
+
+&check`result`vs`skill #1419=[switch([last([first(%0,|)])],xy`a,[if([get([u(func`attackervehicle,[elements(%0,2,|)],[loc([elements(%0,2,|)])])]/carrier)],[get(#80/[get(#1420/armor`capskill)])],[get(#80/[get(#1420/[last([first(%0,|)])]`skill)])])],xy`c,[get(#80/[if([get([u(func`attackervehicle,[elements(%0,2,|)],[loc([elements(%0,2,|)])])]/carrier)],[u(#1420/speed`capskill)],[u(#1420/speed`skill)])])],xy`d,[get(#80/[get(#1420/xy`d`skill)])],xy`e,[get(#80/[get(#1420/xy`e`skill)])],xy`f,[get(#80/[get(#1420/xy`f`skill)])],[get(#80/[last([first(%0,|)])])])]
+
+
+
+----General:
+
+%0 - Constructed select sentence
+%1 - Result
+%2 - Roll
+%3 - Special circumstance
+
+&check`result`general #1419=[ansi([u(color`check`message)],[ansi([u(color`check`result`name)],[name([elements(%1,2,|)])])] selected %0[u(check`result`general`macro,%1,%3,%4)] and rolled a [u(check`result`general`roll,%1,%2)])]
+
+
+&check`result`general`roll #1419=[switch(%1,[u(global`check`dice`sides)],[ansi([u(color`check`cs)],Critical Success)]!,1,[ansi([u(color`check`cf)],Critical Fail)]!,[ansi([u(color`check`roll)],[last(%0,|)])][if([get([elements(%0,2,|)]/useluck)],%bwith luck.,.)])][attrib_set([elements(%0,2,|)]/useluck,0)]
+
+&check`result`destination #1419=[if([get([loc(%#)]/vehicle)],[loc([loc(%#)])],[loc(%#)])]
+
+&check`result`general`macro #1419=[if([match(xy`1 xy`3,xy`[left([after([first(%0,|)],`)],1)])],[if([and([get([elements(%0,2,|)]/macronized)],[or([not([get([u(func`attackervehicle,[elements(%0,2,|)],[loc([elements(%0,2,|)])])]/vehicle)])],%1)])],%bwhile macronised)])]
+
+
+----func`attackervehicle----
+
+Called when needing to decide if to use the attacker's vehicle from their +attack, or something else.
+
+In:
+	%0 - The dbref of the person being checked. If it doesn't match %#, then it's the attacker's check. Else the defender's check, so don't use v2run.
+	%1 - The something else
+	
+Registers:
+	v2run - If set, this means to use the attacker's vehicle from their +attack.
+
+&func`attackervehicle #1419=[if([and([words(%q<v2run>)],[not([match(%0,%#)])])],%q<v2run>,%1)]
+
+
+----check`debug----
+
+Various information reported during the code to make debugging easier.
+
+&check`debug #1419=[if([u(debug`+check)],[pemit(%#,%0)])]
+
+&check`debug`base #1419=[u(check`debug,[ansi(gh,--Check Debug--)])]
+&check`debug`diceroll #1419=[u(check`debug,Dice Roll: %0)]
+&check`debug`luck #1419=[u(check`debug,Luck Boost: [u(global`luckbonus)])]
+&check`debug`stat #1419=[u(check`debug,Stat Boost: %0)]
+&check`debug`statskill #1419=[u(check`debug,Stat&Skill Boost: %0)]
+&check`debug`vstat #1419=[u(check`debug,VStat Boost: %0)]
+&check`debug`result #1419=[u(check`debug,Result: [last(%0,|)]
+&check`debug`acebonus #1419=[u(check`debug,Ace Bonus: [u(global`check`acebonus)])]
+&check`debug`sacebonus #1419=[u(check`debug,Super Ace Bonus: [u(global`check`sacebonus)])]
+&check`debug`macro #1419=[u(check`debug,Macronised Bonus: %0)]

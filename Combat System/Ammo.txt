@@ -1,0 +1,104 @@
+Name: Ammo and Damage
+Programmer: Vincent Cross (Astrus)
+Date: July 2013
+
+Purpose:
+
+This file contains the code related to ammo and damage of the +attack and +defend code. In regards to ammo, it's simply a matter of checking to see if the player has enough ammo to use the weapon they selected, subtracting ammo from the weapon, then returning it if the attack is canceled.
+
+In regards to damage, it is about using the weapon data to inflict damage against the target. This will also involve Armor rolls, armor mitigation, and increased/decreased damage in special circumstances. Here is more information on armor mitigation and damage bonus:
+
+Ah! Right, as for armor mitigation I finally got my wants sorted out for that under this system. First off the static armor mitigation remains as is, so whatever the vehicle stat is at, that's the amount the armor reduces damage by default (unless of course they try to dodge, at which point it gets cut to 1/4 of its value). Now as for bonus mitigation if they choose to defend while in battroid or gerwalk, do an armor check and then divide the result by 2. That will be the bonus armor mitigation, which cannot exceed 90% that ought to handle the possibility of ships going too far beyond this. We'll use a similar check on foot for when we get around to that part!
+
+Also with this in place I wanted to tweak how we did hit quality. Before I had done some stuff up to describe how the damage varies a bit but with the new code what I'd rather do is something a little cleaner. The idea will be instead to take the difference between the winning and losing roll when the attacker succeeds and make that into the damage bonus. So if the attacker beats the defender by only 2 then his weapons do 2% more damage (before armor of course), if it's a difference of say the attacker rolling a 30 and the defender getting 15, then there'd be a 15% damage bonus. 
+
+On a crit success for the attacker they get an automatic 50% damage boost. If the defender crit fails there's a 10% damage boost. If somehow (1 in 900 chance) that both happen at the same time we'll name that a "Super Critical" only for the sake of indicating something crazy rare just happened. The damage boost cannot exceed 60%
+
+Degredation: Your armor will thin out over time. Any hit that does 150 damage or higher before mitigation will take 2 points off of your armor. This continues until your armor has reached half its original value at which point it can't degrade any further. Armor can naturally be repaired out of combat.
+
+
+++++Code++++
+
+
+****Ammo****
+
+This section contains the code related to ammo checks/use. There are three main points to the ammo system:
+
+1) Checking they have enough ammo to make an attack.
+2) Reducing the ammo count when they make an attack.
+3) Returning the ammo count should the attack be canceled.
+
+----ammo`check----
+
+This code handles the check to see that the +attacker has enough ammo to perform the +attack they have requested. It requires two arguments, the weapon data and the strength of the attack. It will then uses those to check if the weapon has enough ammo to fire at the requested strength. If it does, it'll return a 1, else a 0.
+
+In:
+	%0 - Weapondata in format <type>|<name>|<accuracy>|<damage type>|<damage>|<total ammo>|<current ammo>|<ammo use at strength 1>|<weapon location> - R|GV-17L Gunpod|-3|HP|75|200|200|5|I
+	%1 - The strength of the attack. 1, 2, 3
+	
+Out:
+	0/1 - 1 if there's enough ammo, 0 if not.
+
+&ammo`check #1419=[switch([elements(%0,6,|)],I,1,[gte([elements(%0,7,|)],[mul([elements(%0,8,|)],%1)])])]
+
+----ammo`mod----
+
+This is a combination of reducing ammo and returning it. It takes five arguments. The weapon selection, the weapondata, the strength of the attack, the object to be used when getting/setting weapons, and finally a + or - to refer to whether reducing or returning ammo.
+
+In:
+	%0 - Weapon selection (H or #)
+	%1 - Weapondata in format <type>|<name>|<accuracy>|<damage type>|<damage>|<total ammo>|<current ammo>|<ammo use at strength 1>|<weapon location> - R|GV-17L Gunpod|-3|HP|75|200|200|5|I
+	%2 - Strength. 1, 2, 3
+	%3 - Dbref of the object to refund to
+	%4 - - if reducing ammo, + if returning ammo
+	
+&ammo`mod #1419=[if([cand([match(H,[before([last(%1,|)],:)])],[match(+,%4)])],,[switch([elements(%1,6,|)],I,,[attrib_set(%3/wx`[u(ammo`mod`weaponlocation,%1)],[replace([get(%3/wx`[u(ammo`mod`weaponlocation,%1)])],[u(ammo`mod`element,%0,%3,%1)],[u(ammo`mod`replace,%1,%2,%4,%0,%3)],^)])][switch(%4,-,[u(ammo`autojettison,%0,%1,%3)])])])]
+
+&ammo`mod`weaponlocation #1419=[left([last(%0,|)],1)]
+
+&ammo`mod`replace #1419=[replace(%0,7,[switch(%2,+,[if([gt([elements(%0,6,|)],[add([elements(%0,7,|)],[mul([elements(%0,8,|)],%1)])])],[add([elements(%0,7,|)],[mul([elements(%0,8,|)],%1)])],[elements(%0,6,|)])],-,[sub([elements(%0,7,|)],[mul([elements(%0,8,|)],%1)])])],|)]
+
+&ammo`mod`element #1419=[switch(%0,h,1,[switch([u(ammo`mod`weaponlocation,%2)],i,[add(%0,1)],h,[sub(%0,[words([get(%1/wx`i)],^)],-1)],f,[sub(%0,[words([get(%1/wx`i)],^)],[words([get(%1/wx`h)],^)],-1)])])]
+
+----ammo`autojettison----
+
+If the ammo count of the modified weapon reaches 0, the weapon is autojettisoned from the vehicle (if it's a hardpoint weapon).
+
+In:
+	%0 - Weapon selection (#)
+	%1 - Weapondata (non ammo updated)
+	%2 - Dbref of the object to clear the weapon from
+	
+&ammo`autojettison #1419=[if([cand([match(H,[before([last(%1,|)],:)])],[u(ammo`autojettison`check,%0,%2)])],[u(ammo`autojettison`run,%0,%1,%2)])]
+
+&ammo`autojettison`check #1419=[if([elements([u(func`getweapon,%0,%1)],7,|)],0,1)]
+
+&ammo`autojettison`run #1419=[iter([after([last(%1,|)],:)],[attrib_set(%2/[before([itext(0)],>)]`c,[sub([get(%2/[before([itext(0)],>)]`c)],[after([itext(0)],>)])])])][attrib_set(%2/wx`h,[ldelete([get(%2/wx`h)],[u(ammo`autojettison`run`weaponlocation,%0,%2)],^)])][pemit(%#,You jettison your [elements(%1,2,|)] due to empty ammo.)]
+
+&ammo`autojettison`run`weaponlocation #1419=[sub(%0,[words([get(%1/wx`i)],^)],-1)]
+
+
+
+----cmd_+ammo----
+
+This command is used to add or subtract ammo to a specific weapon of the vehicle the player is currently in. It's intent is to be used when getting back ammo from a cleared attack, or to expend ammo for something special.
+
+&cmd_+ammo #1418=$+ammo *=*:think [setq(error,0)][if([get([loc(%#)]/vehicle)],,[setq(error,44)])][u(#1419/func`cango,#1419/ammocmd,%0,%1)]
+
+----ammocmd----
+
+The main code to run the +ammo command. First argument is a weapon selection, numbers only as H doesn't have ammo. Second argument is the amount of ammo, either positive or negative.
+
+In:
+	%0 - Weapon selection (#)
+	%1 - Amount of ammo to add/subtract
+
+&ammocmd #1419=[if([cand([isnum(%0)],[isnum(%1)])],[setq(weapondata,[u(func`getweapon,%0,[loc(%#)])])][u(func`cango,ammocmd`check,%1,%0)],[setq(error,43)])][u(func`cango,ammocmd`message,%1)]
+
+&ammocmd`check #1419=[switch([elements(%q<weapondata>,7,|)],I,[setq(error,45)],[u(func`cango,ammocmd`run,%0,%1)])]
+
+&ammocmd`run #1419=[setq(ammochange,[add([elements(%q<weapondata>,7,|)],%0)])][attrib_set([loc(%#)]/wx`[left([last(%q<weapondata>,|)],1)],[replace([get([loc(%#)]/wx`[left([last(%q<weapondata>,|)],1)])],[u(ammo`mod`element,%1,[loc(%#)],%q<weapondata>)],[replace(%q<weapondata>,7,[u(ammocmd`finalcount)],|)],^)])][u(ammo`autojettison,%1,%q<weapondata>,[loc(%#)])]
+
+&ammocmd`finalcount #1419=[if([gte(%q<ammochange>,[elements(%q<weapondata>,6,|)])],[elements(%q<weapondata>,6,|)],[if([lte(%q<ammochange>,0)],0,%q<ammochange>)])]
+
+&ammocmd`message #1419=[remit([u(check`result`destination)],[ansi([u(color`ammo`message)],[ansi([u(color`ammo`name)],%N)] [switch([left(%0,1)],-,subtracts [after(%0,-)] ammo from,adds %0 ammo to)] their [ansi([u(color`ammo`weapons)],[elements(%q<weapondata>,2,|)])].)])]

@@ -1,0 +1,70 @@
+Name: HelpFiles
+Programmer: Vincent Cross (Astrus)
+Date: May 2013
+
+Outline:
+
+Contains the new helpfiles for the new system.
+
+----+check----
+
++addhelp/n +check=This command is used to make a roll with one of your stats, skills or vehicle stats. The command comes in the following formats:%r%r[ansi(ch,+check <stat/skill/vehicle stat>%r+check/personal <stat/skill/vehicle stat>)]%r%rExamples:%r+check Computers%r+check/personal Gunnery%r%rThe first version of the command is the main one. Outside of a vehicle, it runs the check normally, providing a bonus to any rolls involved strength and endurance if you are macronised.%r%rInside a vehicle, the first command will not give you a macronised bonus (you don't get one while piloting vehicles). Additionally, if you select Gunnery, Hand to Hand, Melee Weapons or one of the Spiritia skills, it will assume you want to use the Targeting or Spiritia Amp. vehicle stat in addition to the relevant skill. If you don't want this, or need the macronised bonus while inside a vehicle (such as on the bridge of a capship), use the second form. The 'personal' switch of the command will override the check, letting you use the above skills without their vehicle stat and also give you any macronised bonus. This is useful if you are doing personal rolls while inside a vehicle or capital ship bridge.%r%rTips:%r%r- You need to be in a vehicle to roll a vehicle stat.%r- You can use a skill ID as shown in +sheet instead of typing the skill name. Skill abbreviations (H2H,SSO) and partial matches (adv, conc) are also possible.
+
+
+----+compare----
+
++addhelp/n +compare=This command is used to compare one of your stats, skills or vehicle stats against someone else. It allows you to choose an opponent, select both your stat/skill and their stat/skill. The code then automatically runs through the combat math, punching out a final result of who won. Much like [ansi(ch,+check)], it also has a personal switch for when you wish to receive a macronised bonus, or run Gunnery, Melee Weapons, or Hand to Hand while inside a vehicle without using the vehicle stat.%r%r[ansi(ch,+compare <player>=<your skill>:<their skill>%r+compare/personal <player>=<your skill>:<their skill>)]%r%rExamples:%r%r+compare Astrus=Electronic Warfare:Concealment%r+compare/personal Astrus=Melee Weapons:Dodging%r%rMuch like with +check, you can use skill abbreviations (H2H, EW), skill ids (101, 433) or partial matches (hand, elec)
+
+
+----+gscheck----
+
++addhelp/n +gscheck=[ansi(ch,+gscheck <difficulty>:<skill>%r+gscheck <player>=<difficulty>:<skill>%r+gscheck/personal <difficulty>:<skill>)]%r%rThis is the command for the Global Skill Check system. It checks the chosen skill against a pre-determined difficulty. It also has the personal switch (for both forms) much like with +check and +compare. Where the difficulty was once numbers, it is now the initials of the difficulty. Below is a list:%r%rVE (Very Easy)%rE (Easy)%rN (Normal)%rH (Hard)%rVH (Very Hard)%rI (Impossible)
+
+
+----+luck----
+
++addhelp/n +luck=[ansi(ch,+luck%r+luck/now)]%r%rThe first version of this command signals the system that you intend to use a luck point for your next roll. It doesn't remove the point until the roll occurs and can be undone by using the command again.%r%rThe second version uses a luck point immediately and has no effect on any coded rolls. Cannot be undone.%r%rLuck will work with:%r%r+check%r+compare%r+gscheck%rNormal +attacks%rAOE +attacks%rAll types of +defending%r+defending against dramatic attacks, but it will cost you three points instead of the normal one.
+
+
+----+debug----
+
++addhelp/admin/n +debug=[ansi(ch,+debug%r+debug/<section>)]%r%rThis command can only be run by admin. It sets the combat system into debug mode, at which point it outputs further information about the various commands used with it. While only admin can use this command, everyone who uses the associated commands will see the debug information. The first version turns on/off all debugging. The second turns on/off a specific section of the combat system. Below are a list of the sections:%r%r+debug/check%r+debug/compare%r+debug/attack%r+debug/defend%r+debug/results
+
+
+----+attack----
+
++addhelp/n +attack=[ansi(ch,+attack <target>=<weapon>:<strength>)]%r%rUsed for normal and Precision attacks. <target> is obviously the target player. <weapon> is your weapon selection from your vehicle. <strength> is either 1/2/3 to signify the level of the attack, or P to signify a Precision attack. To perform a Precision attack, you need one available point of luck.%r%r[ansi(ch,+attack <target>=U)]%r%rSimply performs an Unorthodox attack against your <target>. Requires one available point of luck to use.%r%r[ansi(ch,+attack/aoe <space separated target list>=<weapon>:<strength>)]%r%rPerforms an AOE attack against up to four targets. A target should either be one word, or enclosed in " ".%r%r[ansi(ch,+attack <target>=<weapon> <weapon> <weapon>)]%r%rPerforms a Dramatic attack against the chosen target with the selected weapons.%r%rExamples:%r%r+attack Player1=3:2%r+attack Player2=4:P%r+attack Player3=U%r+attack/aoe Player1 Player2 Player3 "Player4 With Spaces"=2:3%r+attack Player4=3 H 2
+
+
+----+defend----
+
++addhelp/n +defend=[ansi(ch,+defend)]%r%rThis first command displays your combat queue. The queue lists information about attacks that have been made against you. This information includes the attacker's name, type of attack, how long ago the attack was made, the weapons involved in the attack, the strength of the attack and whether or not the attacking player is using luck for their roll.%r%r[ansi(ch,+defend/clear%r+defend/clear <#>)]%r%rThe next command will clear all attacks from the queue completely. The second version will clear only the selected attack from your queue, specified by the number of the attack.%r%r[ansi(ch,+defend <action>%r+defend <#>=<action>)]%r%rThe first version performs the indicated <action> against the most recent attack, or the attack at the top of your queue. The second version performs the <action> against the specified attack in your queue. Actions can be:%r%r[ansi(ch,E)] - Evade%r[ansi(ch,D)] - Defend%r[ansi(ch,I)] - Intercept (Missile weapons only)%r[ansi(ch,C:<weapon>)] - To counter with the selected <weapon>%r%r[ansi(ch,+defend <action> <action> <action>%r+defend <#>=<action> <action> <action>)]%r%rThe final version of the command is to defend against a dramatic attack. It works much like the previous ones, except you list three actions to perform, relevant to the three attacks of the dramatic attack.%r%rExamples:%r%r+defend E%r+defend 3=I%r+defend C:4%r+defend I E C:2
+
+
+----+link----
+
++addhelp/n +link=The datalink enhancement system is useful for those who want a boost when deciding +initiative. By establishing a datalink with someone more experienced with electronic warfare, or who has a vehicle with greater sensors, you can use their sensors and skills to determine your own initiative.%r%rThe datalink command is a handshake type:%r%r[ansi(ch,+link <player>)] will first send a request to establish a datalink.%r%r[ansi(ch,+link <first player>)], when typed by the person the request was sent to, will attempt to establish the link.%r%rIt doesn't matter who first makes the request or who accepts it, the code will determine who of the two players has the highest combined Sensors, Intelligence and Electronic Warfare points and make them the one who the +initiative code uses.%r%rBecause of how the code works, you can only have one player to boost your initiative, but a single player can boost the initiative of many other characters. There are a few restrictions to the system:%r%r-You must both be in vehicles.%r-Your vehicles must both be in the same room.%r-If you are being boosted and move your vehicle out of the room, the link will break.%r-If you are boosting someone else and move your vehicle, the link will break, but it wont actually tell you until the initiative of the person you are linked to is checked.%r-A successful Computers roll on the part of the player receiving the boost is necessary to establish the link.%r-Said Computers roll is made with each +round, so it is possible to lose the link. You can attempt to regain it, but your initiative for that round will be based on your own abilities.%r-Your current datalink can be seen in your vehicle's upper display.
+
+
+----+turn----
+
++addhelp/n +turn=[ansi(ch,+turn)]%r%rA simple command, reduces the duration of your buff/debuff by one. To be used during scenes when you go through a round, but perform no actual combat command and need to represent your buff/debuff ticking over.
+
+
+----+buff----
+
++addhelp/n +buff=[ansi(ch,+buff <target>%r+buff/aoe <targets>%r+buff <target>=<skill>%r+buff/aoe <targets>=<skill>)]%r%rThis command applies a buff to your target or targets in the case of the AOE switch. The first version, the one without the <skill>, uses the Spiritia Amp. of the vehicle you are in to apply a buff. The second version, the one with <skill>, uses the selected Performance Skill to apply a buff. With the /aoe switch, the command can accept up to four targets for the buff. This is a list of one word names/aliases or a name enclosed in " ".%r%rYou cannot perform a buff for a Performance Skill (currently Singing, Musical Instruments and Dancing) if you don't have that skill. You cannot perform a Spiritia Amp. buff if you do not have the Enhance skill and/or are not in a vehicle.%r%rExamples:%r%r+buff Player1%r+buff Player2=sing%r+buff/aoe Player1 Player2 "Player3 With Spaces"
+
+----+debuff----
+
++addhelp/n +debuff=[ansi(ch,+debuff <target>%r+debuff/aoe <targets>%r+debuff <target>=<skill>%r+debuff/aoe <targets>=<skill>)]%r%rThis command applies a debuff to your target or targets in the case of the AOE switch. The first version, the one without the <skill>, uses the Spiritia Amp. of the vehicle you are in to apply a debuff. The second version, the one with <skill>, uses the selected Performance Skill to apply a debuff. With the /aoe switch, the command can accept up to four targets for the debuff. This is a list of one word names/aliases or a name enclosed in " ".%r%rYou cannot perform a debuff for a Performance Skill (currently Singing, Musical Instruments and Dancing) if you don't have that skill. You cannot perform a Spiritia Amp. buff if you do not have the Enhance skill and/or are not in a vehicle.%r%rExamples:%r%r+debuff Player1%r+debuff Player2=sing%r+debuff/aoe Player1 Player2 "Player3 With Spaces"
+
+
+----Combat----
+
++addhelp Combat=Here are a list of help files available for the commands closely related to the full combat system. Note that the term 'combat' as used here refers to all stat/skill checks, regardless of if they are directly used for combat in RP or not.%r%r[align(15 60,[ansi(ch,+help +check%r+help +gscheck%r%r+help +compare%r%r+help +attack%r+help +defend%r+help +buff%r+help +debuff%r+help +turn%r+help +link%r+help +ammo)],- Performs a simple check of your stat/skill/vehicle stat%r- Makes a check against a global difficulty to see if you are successful%r- Compares one of your stats/skills/vehicle stats against someone elses%r- Begins an attack against someone%r- Defends against an attack made against you%r- Buffs someone%r- Debuffs someone%r- Expends one duration of your buff/debuff%r- Creates a datalink to boost initiative%r- Adds or subtracts ammo to a specific weapon)]
+
+
+----+ammo----
+
++addhelp/n +ammo=[ansi(ch,+ammo <weapon>=<amount>)]%r%rSimply adds or subtracts ammo to the specific weapon of the vehicle you are currently in. Eg:%r%r+ammo 5=10%r+ammo 3=-15

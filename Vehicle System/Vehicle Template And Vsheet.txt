@@ -1,0 +1,109 @@
+Astrus nods, "So the full list of vehicle stats is, Targetting, Armor, Speed, Intercept, Stealth, Sensors, Spiritia Amp, HP, Barrier, Whether it has a FAST pack, FAST pack hp, mode... And the various weapons with their ammunition counts."
+You say, "(and their own weapon stats)"
+Xeero says, "Ohcrap, I forgot one other stat: Spiritia Amp. (uses spirit stat and spirit skills)"
+Xeero keeps forgetting that one cause Spiritia stuff is so damn weird XP
+Xeero says, "but yes that's the list"
+You say, "Weapon stats are, name, type, accuracy, hp damage, sp damage, ammo, sp ammo, and consumption levels."
+
+
+&vsheet_cmd #752=$^\+vsheet (.+)|^\+vsheet$:think [setq(1,[after([escape(%1)],\\)])][setq(a,%#)][setq(n,[iter([lcon([loc(%#)])],[if([hastype(##,thing)],[if([strmatch([name(##)],*%q1*)],##%b)])],,)])][switch([words(%1)],0,[if([get([loc(%#)]/vehicle)],[pemit(%#,[get_eval([loc(%#)]/vsheet`run)])],[pemit(%#,The object you are in is not a vehicle.)])],[switch([words(%qn)],0,[pemit(%#,Error, cannot see that vehicle.)],1,[if([get([first(%qn)]/vehicle)],[pemit(%#,[get_eval([first(%qn)]/vsheet`run)])],[pemit(%#,Error, that is not a vehicle.)])],[pemit(%#,Error, multiple vehicles with that name.)])])]
+
+@set #752/vsheet_cmd=regexp
+
+-----------------
+
+&vsheet`basic atvf=[align(1. 36 1. 35 1.,[ansi(bh,|)],[ansi(yh,Name:)] [v(yz`10)] \([v(yz`8)]\),[ansi(bh,|)],[ansi(yh,Primary Pilot:)] [name([v(yz`9)])],[ansi(bh,|)])]%r[align(1. 36 1. 8 >11 1 <12 1.,[ansi(bh,|)],[ansi(yh,Type:)] [v(yz`6)]%r[ansi(yh,Mode:)] [switch([v(yz`5)],G,GERWALK,B,Battroid,F,Fighter,N[/]A)]%r[ansi(yh,FAST Equipped:)] [v(yz`3)]%r[ansi(yh,Current Pilots:)] [iter([lvplayers(me)],[name(##)],,[,%b])],[ansi(bh,|)],[ansi(yh,HP:)]%r[ansi(yh,Barrier:)]%r[ansi(yh,FAST HP:)],[v(yz`1`c)]%r[v(yz`2`c)]%r[v(yz`4`c)],/%r/%r/,[v(yz`1)]%r[v(yz`2)]%r[v(yz`4)],[ansi(bh,|)])]
+
+[v(yz`1`c)]%b/%b[v(yz`1)]%r[v(yz`2`c)]%b/%b[v(yz`2)]%r[v(yz`4`c)]%b/%b[v(yz`4)],[ansi(bh,|)])]
+
+------------------
+
+&VSHEET`STATS atvf=[align(1. 11 10 12 10 16 10 1.,[ansi(bh,|)],[ansi(yh,Armor:)]%r[ansi(yh,Targeting:)]%r[ansi(yh,Sensors:)],[u(vsheet`stats`a)]%r[u(vsheet`stats`b)]%r[u(vsheet`stats`f)],[ansi(yh,Speed:)]%r[ansi(yh,Intercept:)],[u(vsheet`stats`c)]%r[u(vsheet`stats`d)],[ansi(yh,Stealth:)]%r[ansi(yh,Spiritia Amp.:)],[u(vsheet`stats`e)]%r[u(vsheet`stats`g)]%r,[ansi(bh,|)])]
+
+&vsheet`stats`a atvf=[if([match([v(xy`a)],[v(xy`a`c)])],[v(xy`a`c)],[if([gt([v(xy`a`c)],[v(xy`a)])],[ansi(gh,[v(xy`a`c)] +[sub([v(xy`a`c)],[v(xy`a)])])],[ansi(rh,[v(xy`a`c)] -[sub([v(xy`a)],[v(xy`a`c)])])])])]
+
+&vsheet`stats`b atvf=[if([match([v(xy`b)],[v(xy`b`c)])],[v(xy`b`c)],[if([gt([v(xy`b`c)],[v(xy`b)])],[ansi(gh,[v(xy`b`c)] +[sub([v(xy`b`c)],[v(xy`b)])])],[ansi(rh,[v(xy`b`c)] -[sub([v(xy`b)],[v(xy`b`c)])])])])]
+
+&vsheet`stats`c atvf=[if([match([v(xy`c)],[v(xy`c`c)])],[v(xy`c`c)],[if([gt([v(xy`c`c)],[v(xy`c)])],[ansi(gh,[v(xy`c`c)] +[sub([v(xy`c`c)],[v(xy`c)])])],[ansi(rh,[v(xy`c`c)] -[sub([v(xy`c)],[v(xy`c`c)])])])])]
+
+&vsheet`stats`d atvf=[if([match([v(xy`d)],[v(xy`d`c)])],[v(xy`d`c)],[if([gt([v(xy`d`c)],[v(xy`d)])],[ansi(gh,[v(xy`d`c)] +[sub([v(xy`d`c)],[v(xy`d)])])],[ansi(rh,[v(xy`d`c)] -[sub([v(xy`d)],[v(xy`d`c)])])])])]
+
+&vsheet`stats`e atvf=[if([match([v(xy`e)],[v(xy`e`c)])],[v(xy`e`c)],[if([gt([v(xy`e`c)],[v(xy`e)])],[ansi(gh,[v(xy`e`c)] +[sub([v(xy`e`c)],[v(xy`e)])])],[ansi(rh,[v(xy`e`c)] -[sub([v(xy`e)],[v(xy`e`c)])])])])]
+
+&vsheet`stats`f atvf=[if([match([v(xy`f)],[v(xy`f`c)])],[v(xy`f`c)],[if([gt([v(xy`f`c)],[v(xy`f)])],[ansi(gh,[v(xy`f`c)] +[sub([v(xy`f`c)],[v(xy`f)])])],[ansi(rh,[v(xy`f`c)] -[sub([v(xy`f)],[v(xy`f`c)])])])])]
+
+&vsheet`stats`g atvf=[if([match([v(xy`g)],[v(xy`g`c)])],[v(xy`g`c)],[if([gt([v(xy`g`c)],[v(xy`g)])],[ansi(gh,[v(xy`g`c)] +[sub([v(xy`g`c)],[v(xy`g)])])],[ansi(rh,[v(xy`g`c)] -[sub([v(xy`g)],[v(xy`g`c)])])])])]
+
+
+-----Vsheet, vstatus------
+
+&vsheet_cmd here=$^\+vsheet1 (.+)|^\+vsheet1$:think [setq(1,%1)][setq(a,%#)][switch([words(%q1)],0,[if([hasattrval([loc(%#)],vehicle)],[setq(n,[loc(%#)])],[pemit(%#,Error, you are not currently in a vehicle.)])],[setq(n,[iter([lcon([if([hasattrval([loc(%#)],vehicle)],[loc([loc(%#)])],[loc(%#)])])],[if([hasattrval(##,vehicle)],[if([strmatch([name(##)],*%0*)],##%b)])],,)])][switch([words(%qn)],0,[pemit(%#,Error, no such vehicle can be seen.)],1,,[pemit(%#,Error, multiple objects with that name found.)])])][pemit(%#,%qn)]
+
+@set #134/vsheet_cmd=regexp
+
+-----OLD VSheet, vscan-------
+
+&describe #734=[edit([u(exterior)],%t,%b%b%b%b%b)]
+&describe #595=[edit([u(desc`[v(yz`5)])],%t,%b%b%b%b%b)]
+
+&vsheet_cmd #134=$^\+vsheet (.+)|^\+vsheet$:think [setq(1,%1)][setq(a,%#)][setq(n,[iter([lcon([loc(%#)])],[if([hastype(##,thing)],[if([strmatch([name(##)],*%q1*)],##%b)])],,)])][switch([words(%1)],0,[if([get([loc(%#)]/vehicle)],[pemit(%#,[get_eval([loc(%#)]/vsheet`run)])],[pemit(%#,The object you are in is not a vehicle.)])],[switch([words(%qn)],0,[pemit(%#,Error, cannot see that vehicle.)],1,[if([get([first(%qn)]/vehicle)],[pemit(%#,[get_eval([first(%qn)]/vsheet`run)])],[pemit(%#,Error, that is not a vehicle.)])],[pemit(%#,Error, multiple vehicles with that name.)])])]
+
+&vscan_cmd vp=$+vscan *:think [setq(n,[iter([lcon([loc(me)])],[if([hastype(##,thing)],[if([strmatch([name(##)],*%0*)],##%b)])],,)])][switch([words(%qn)],0,[pemit(%#,Error, no such vehicle can be seen.)],1,[if([get([first(%qn)]/vehicle)],[pemit(%#,[get_eval([first(%qn)]/vsheet`run)])],[pemit(%#,Error, that is not a vehicle.)])],[pemit(%#,Error, multiple objects with that name found.)])]
+
+@set #752/vsheet_cmd=regexp
+
+&vsheet`basic #734=[align(1. 36 1. 35 1.,[ansi(bh,|)],[ansi(yh,Name:)] [v(yz`10)] \([v(yz`8)]\),[ansi(bh,|)],[ansi(yh,Primary Pilot:)] [name([v(yz`9)])],[ansi(bh,|)])]%r[align(1. 36 1. 9 -25 1.,[ansi(bh,|)],[ansi(yh,Type:)] [v(yz`6)]%r[ansi(yh,Mode:)] [switch([v(yz`5)],G,GERWALK,B,Battroid,F,Fighter,N[/]A)]%r[ansi(yh,FAST Equipped:)] [first([v(yz`3)],|)]%r[ansi(yh,Current Pilots:)] [iter([lvplayers(me)],[name(##)],,[,%b])],[ansi(bh,|)],[ansi(yh,HP:)]%r[ansi(yh,Barrier:)]%r[ansi(yh,FAST HP:)]%r[ansi(yh,Datalink:)],[v(yz`1`c)]%b/%b[v(yz`1)]%r[v(yz`2`c)]%b/%b[v(yz`2)]%r[v(yz`4`c)]%b/%b[v(yz`4)]%r[if([hasattrval(me,link.active)],[name([get(me/link.active)])],None)],[ansi(bh,|)])]
+
+&vsheet`basic #811=[align(1. 36 1. 35 1.,[ansi(bh,|)],[ansi(yh,Name:)] [v(yz`10)] \([v(yz`8)]\),[ansi(bh,|)],[ansi(yh,Primary Pilot:)] [name([v(yz`9)])],[ansi(bh,|)])]%r[align(1. 36 1. 9 -25 1.,[ansi(bh,|)],[ansi(yh,Type:)] [v(yz`6)]%r[ansi(yh,Current Pilots:)] [iter([lvplayers(me)],[name(##)],,[,%b])],[ansi(bh,|)],[ansi(yh,HP:)]%r[ansi(yh,Barrier:)]%r[ansi(yh,Datalink:)],[v(yz`1`c)]%b/%b[v(yz`1)]%r[v(yz`2`c)]%b/%b[v(yz`2)]%r[if([hasattrval(me,link.active)],[name([get(me/link.active)])],None)],[ansi(bh,|)])]
+
+&vsheet`basic #810=[align(1. 36 1. 35 1.,[ansi(bh,|)],[ansi(yh,Name:)] [v(yz`10)] \([v(yz`8)]\),[ansi(bh,|)],[ansi(yh,Primary Pilot:)] [name([v(yz`9)])],[ansi(bh,|)])]%r[align(1. 36 1. 9 -25 1.,[ansi(bh,|)],[ansi(yh,Type:)] [v(yz`6)]%r[ansi(yh,Current Pilots:)] [iter([lvplayers(me)],[name(##)],,[,%b])],[ansi(bh,|)],[ansi(yh,HP:)]%r[ansi(yh,Barrier:)]%r[ansi(yh,Datalink:)],[v(yz`1`c)]%b/%b[v(yz`1)]%r[v(yz`2`c)]%b/%b[v(yz`2)]%r[if([hasattrval(me,link.active)],[name([get(me/link.active)])],None)],[ansi(bh,|)])]
+
+&vsheet`basic #809=[align(1. 36 1. 35 1.,[ansi(bh,|)],[ansi(yh,Name:)] [v(yz`10)] \([v(yz`8)]\),[ansi(bh,|)],[ansi(yh,Primary Pilot:)] [name([v(yz`9)])],[ansi(bh,|)])]%r[align(1. 36 1. 9 -25 1.,[ansi(bh,|)],[ansi(yh,Type:)] [v(yz`6)]%r[ansi(yh,Current Pilots:)] [iter([lvplayers(me)],[name(##)],,[,%b])],[ansi(bh,|)],[ansi(yh,HP:)]%r[ansi(yh,Barrier:)]%r[ansi(yh,Datalink:)],[v(yz`1`c)]%b/%b[v(yz`1)]%r[v(yz`2`c)]%b/%b[v(yz`2)]%r[if([hasattrval(me,link.active)],[name([get(me/link.active)])],None)],[ansi(bh,|)])]
+
+&vsheet`desc #734=[align(1. 74 1.,[ansi(bh,|)],[u(describe)],[ansi(bh,|)])]
+
+Name: 25
+Damage: 8
+Ammo: 15
+Ammo Use: 12
+Space: 10
+
+
+&VSHEET`hrdweapons #734=[ansi(hb,[center(<[space(1)][ansi(w,Hardpoint Weapons)][space(1)][ansi(wh,\([sub([v(hardpointspace)],[words([v(wx`h)],^)])] Free\))][space(1)]>,78,|)])]%r[align(1. 25 1. 6 1. 12 1. 14 1. 5 1.,[ansi(bh,|)],[iter([v(wx`h)],[ansi(yh,[sub([add([inum(0)],[words([v(wx`i)],^)])],1)])]: [left([elements(%i0,2,|)],22)],^,%r)],[ansi(bh,|)],[iter([v(wx`h)],[elements(%i0,5,|)],^,%r)],[ansi(bh,|)],[iter([v(wx`h)],[switch([elements(%i0,6,|)],I,N/A,[elements(%i0,7,|)] / [elements(%i0,6,|)])],^,%r)],[ansi(bh,|)],[iter([v(wx`h)],[switch([elements(%i0,8,|)],0,N/A,[elements(%i0,8,|)]:[mul([elements(%i0,8,|)],2)]:[mul([elements(%i0,8,|)],3)])],^,%r)],[ansi(bh,|)],[iter([v(wx`h)],[elements(%i0,3,|)],^,%r)],[ansi(bh,|)])]
+
+&VSHEET`RUN #734=%r[header2([name(me)],b,r)]%r[u(vsheet`basic)]%r[ansi(bh,+[repeat(-,76)]+)]%r[u(vsheet`stats)]%r[ansi(hb,[center(<[space(1)][ansi(w,Description)][space(1)]>,78,|)])]%r[u(vsheet`desc)]%r[u(vsheet`stweapons)]%r[u(vsheet`hrdweapons)]%r[switch([v(yz`6)],VF,[u(vsheet`fastweapons)]%r)][ansi(hb,[repeat(|,78)])]
+
+&VSHEET`RUN`old #734=%r[header2([name(me)],b,r)]%r[u(vsheet`basic)]%r[ansi(bh,+[repeat(-,76)]+)]%r[u(vsheet`stats)]%r[ansi(hb,[center(<[space(1)][ansi(w,Description)][space(1)]>,78,|)])]%r[u(vsheet`desc)]%r[if([hasattrval(me,wx`i)],[u(vsheet`stweapons)]%r)][if([hasattrval(me,wx`h)],[u(vsheet`hrdweapons)]%r)][if([hasattrval(me,wx`f)],[u(vsheet`fastweapons)]%r)][ansi(hb,[repeat(|,78)])]
+
+&VSHEET`STATS atvf=[align(1. 11 10 12 10 16 10 1.,[ansi(bh,|)],[ansi(yh,Armor:)]%r[ansi(yh,Targeting:)]%r[ansi(yh,Sensors:)],[v(xy`a`c)]%r[v(xy`b`c)]%r[v(xy`f`c)],[ansi(yh,Speed:)]%r[ansi(yh,Intercept:)],[v(xy`c`c)]%r[v(xy`d`c)],[ansi(yh,Stealth:)]%r[ansi(yh,Spiritia Amp.:)],[v(xy`e`c)]%r[v(xy`g`c)]%r,[ansi(bh,|)])]
+
+&VSHEET`STWEAPONS #734=[ansi(hb,[center(<[space(1)][ansi(w,Standard Weapons)][space(1)]>,78,|)])]%r[align(1. 25 1. 6 1. 12 1. 14 1. 5 1.,[ansi(bh,|)],[ansi(yh,Weapon)],[ansi(bh,|)],[ansi(yh,Damage)],[ansi(bh,|)],[ansi(yh,Ammo)],[ansi(bh,|)],[ansi(yh,Ammo Use)],[ansi(bh,|)],[ansi(yh,Acc)],[ansi(bh,|)])]%r[sep()]%r[align(1. 25 1. 6 1. 12 1. 14 1. 5 1.,[ansi(bh,|)],[iter([v(wx`i)],[ansi(yh,[switch([inum(0)],1,H,[sub([inum(0)],1)])])]: [left([elements(%i0,2,|)],22)],^,%r)],[ansi(bh,|)],[iter([v(wx`i)],[elements(%i0,5,|)],^,%r)],[ansi(bh,|)],[iter([v(wx`i)],[switch([elements(%i0,6,|)],I,N/A,[elements(%i0,7,|)] / [elements(%i0,6,|)])],^,%r)],[ansi(bh,|)],[iter([v(wx`i)],[switch([elements(%i0,8,|)],0,N/A,[elements(%i0,8,|)]:[mul([elements(%i0,8,|)],2)]:[mul([elements(%i0,8,|)],3)])],^,%r)],[ansi(bh,|)],[iter([v(wx`i)],[elements(%i0,3,|)],^,%r)],[ansi(bh,|)])]
+
+&VSHEET`STWEAPONS`old #734=[ansi(hb,[center(<[space(1)][ansi(w,Standard Weapons)][space(1)]>,78,|)])]%r[align(1. 25 1. 6 1. 12 1. 14 1. 5 1.,[ansi(bh,|)],[ansi(yh,Weapon)],[ansi(bh,|)],[ansi(yh,Damage)],[ansi(bh,|)],[ansi(yh,Ammo)],[ansi(bh,|)],[ansi(yh,Ammo Use)],[ansi(bh,|)],[ansi(yh,Acc)],[ansi(bh,|)])]%r[sep()]%r[align(1. 25 1. 6 1. 12 1. 14 1. 5 1.,[ansi(bh,|)],[iter([v(wx`i)],[ansi(yh,[switch([inum(0)],1,H,[sub([inum(0)],1)])])]: [elements(%i0,2,|)],^,%r)],[ansi(bh,|)],[iter([v(wx`i)],[elements(%i0,5,|)],^,%r)],[ansi(bh,|)],[iter([v(wx`i)],[switch([elements(%i0,6,|)],I,N/A,[elements(%i0,7,|)] / [elements(%i0,6,|)],[ansi(bh,|)],,[ansi(bh,|)])],^,%r)],[ansi(bh,|)],[iter([v(wx`i)],[switch([elements(%i0,8,|)],0,N/A,[elements(%i0,8,|)]:[mul([elements(%i0,8,|)],2)]:[mul([elements(%i0,8,|)],3)])],^,%r)],[ansi(bh,|)],[iter([v(wx`i)],[elements(%i0,3,|)],^,%r)],[ansi(bh,|)])]
+
+
+&vsheet`fastweapons #734=[ansi(hb,[center(<[space(1)][ansi(w,FAST Pack Weapons)][space(1)]>,78,|)])]%r[align(1. 25 1. 6 1. 12 1. 14 1. 5 1.,[ansi(bh,|)],[iter([v(wx`f)],[ansi(yh,[sub([add([inum(0)],[words([v(wx`i)][if([hasattrval(me,wx`h)],^[v(wx`h)])],^)])],1)])]: [left([elements(%i0,2,|)],22)],^,%r)],[ansi(bh,|)],[iter([v(wx`f)],[elements(%i0,5,|)],^,%r)],[ansi(bh,|)],[iter([v(wx`f)],[switch([elements(%i0,6,|)],I,N/A,[elements(%i0,7,|)] / [elements(%i0,6,|)])],^,%r)],[ansi(bh,|)],[iter([v(wx`f)],[switch([elements(%i0,8,|)],0,N/A,[elements(%i0,8,|)]:[mul([elements(%i0,8,|)],2)]:[mul([elements(%i0,8,|)],3)])],^,%r)],[ansi(bh,|)],[iter([v(wx`f)],[elements(%i0,3,|)],^,%r)],[ansi(bh,|)])]
+
+
+------------------
+
+-----Displays-----
+
+&DESC`INSIDE vfp=%r[u(desc`inside`first)]%r[u(desc`inside`second)]%r[u(desc`inside`third)]%r[u(desc`inside`fourth)]%r[ansi(bh,+[repeat(-,76)]+)]
+
+&DESC`INSIDE`FIRST atvf=[header2([name(me)],b,r)]%r[u(vsheet`basic)]
+
+&DESC`INSIDE`SECOND vp=[ansi(bh,+[center([ansi(yh,Outside Display)],76,-)]+)]%r[align(1. 74 1.,[ansi(bh,|)],[ansi(wh,[name(here)])]%r[u([loc(me)]/describe)]%r%r[ansi(yh,Exits:)]%r[iter([lexits(here)],[ansi(wh,<[ucstr([first([after(fullname(##),;)],;)])]> [name(##)])] leads to [ansi(yh,[name([loc(##)])])],,%r)],[ansi(bh,|)])]
+
+&DESC`INSIDE`THIRD atvf=[align(1. 20 53 1.,[ansi(bh,|)],%r[ansi(yh,Players:)]%r[iter([lvplayers(here)],[name(##)],,%r)],%r[ansi(yh,Objects:)]%r[iter([lvcon(here)],[if([andflags(##,P)],,[name(##)]%r)],,)]%r,[ansi(bh,|)])]
+
+&desc`inside`fourth vfp=[ansi(bh,+[center([ansi(yh,Inside Status)],76,-)]+)]%r[align(1. 20 53 1.,[ansi(bh,|)],[ansi(yh,Players:)]%r[iter([lvplayers(me)],[name(##)],,%r)],[ansi(yh,Objects:)]%r[iter([lvcon(me)],[if([andflags(##,P)],,[name(##)]%r)],,)],[ansi(bh,|)])]
+
+@DESCRIBE atvf=Whatever player wants.
+@idesc vfp=[u(desc`inside)]
+
+------------------
+
+
+
+&VEHICLE atvf=1

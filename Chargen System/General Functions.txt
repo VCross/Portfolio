@@ -1,0 +1,14 @@
+Filename: General Functions
+Date: March 2014
+Programmer: Vincent Cross
+
+Purpose:
+
+This file contains some general functions and attributes that are used by all the rooms.
+
+-- function message`revise
+/// A message used by all rooms as part of their descriptions, saying that revision for a specific question is required.
+
+&message`revise #1489=%b[ansi(yh,Revision Required)]
+
+!--

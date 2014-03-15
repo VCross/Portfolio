@@ -1,0 +1,43 @@
+Name: +luck
+Programmer: Vincent Cross (Astrus)
+Date: May 2013
+
+Purpose:
+
+Simply contains the code necessary for players to indicate they'd like to use luck on their next attack/roll.
+
+++++Code++++
+
+----cmd_+luck----
+
+The main command on #1418 to do indicate that the player wishes to use one of their luck.
+
+&cmd_+luck #1418=$+luck:think [setq(error,0)][u(#1419/luck)]
+
+&cmd_+luck2 #1418=$+luck/now:think [setq(error,0)][u(#1419/luck`now)]
+
+
+----luck----
+
+The main code on #1419 for the +luck command. Simply checks if they have enough luck to use it, then sets an attribute on them that rolls and attacks look for.
+
+&luck #1419=[u(luck`check)][u(func`cango,luck`run)]
+
+&luck`check #1419=[if([get(%#/useluck)],,[if([lte([get(%#/xy`6`c)],0)],[setq(error,1)])])]
+
+&luck`run #1419=[attrib_set(%#/useluck,[not([get(%#/useluck)])])][set(%#/useluck,w)][set(%#/useluck,m)][u(luck`message)]
+
+&luck`message #1419=[remit([u(check`result`destination)],[ansi([u(color`message`luck)],[ansi([u(color`luck`name)],%N)] will [if([get(%#/useluck)],now,no longer)] use luck with %p next attack or roll.)])]
+
+
+----luck`now----
+
+Used when you want to burn a luck point right now without using it in any code.
+
+&luck`now #1419=[u(luck`now`check)][u(func`cango,luck`now`run)]
+
+&luck`now`check #1419=[if([lte([get(%#/xy`6`c)],0)],[setq(error,1)])]
+
+&luck`now`run #1419=[attrib_set(%#/xy`6`c,[sub([get(%#/xy`6`c)],1)])][u(luck`now`message)]
+
+&luck`now`message #1419=[remit([u(check`result`destination)],[ansi([u(color`message`luck)],[ansi([u(color`luck`name)],%N)] has used one of their luck points.)])]

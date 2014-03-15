@@ -1,0 +1,447 @@
+Filename: Room 2 - Personal Information
+Date: January 2014
+Programmer: Vincent Cross
+
+Purpose:
+
+This is a small room, beginning the character through the app process. It describes important information about this process, along with beginning to get personal information about them:
+
+Are you a new player/have no existing alts? (db`%#`2`new)
+
+No:
+    - Current Alts (db`%#`2`alts) (R)
+    - Email Address (db`%#`2`email) (R)
+    
+Yes:
+
+    - Name (real or commonly known online alias) (db`%#`2`name) (R)
+    - Age (db`%#`2`age) (R)
+    - Email Address (db`%#`2`email) (R)
+    
+    - Have you ever role-played online? (db`%#`2`rped) (R)
+    - What is consent based RP (db`%#`2`consent) (R)
+    - How did you find out about us. (db`%#`2`source) (R)
+
+Both:
+    
+    - Section status?  C - Complete, I - Incomplete, R - Revisions Required (db`%#`2`status)
+    
+Chargen Code: #1489
+Generic Room Parent: #333
+    
+-- Room Creation
+//
+This section contains the code necessary to create the room. It is expected to be performed from Room 1.
+!//
+
+@dig Chargen 2 - Personal Information=Next;n;next,Back;b;back
+N
+@parent here=#333
+@set here=!no_command
+@set here=wizard
+@desc here=Welcome to your new character! There first thing you should be aware of is the following command:%r%r[ansi([u(#1489/desc`color`cmd)],+app)]%r%rThis command will display information about your current app status, including which sections have been completed and later, which ones require alterations before approval.%r%rTo begin with, we will require some personal information about you. Below are the questions, commands and whatever answers you have currently added. Using any of these commands on their own (eg: Just '[ansi(ch,+consent)]') will tell you what you have written in it. Note that already approved characters will see all questions, so they can help new characters. Also, many of the questions through the app process will have character limits. So any long answers will be cut off.%r%r[u(desc`status)]%r%r[u(desc`new)]%r%r[u(desc`yesno`display)]
+!--
+
+-- Descriptions
+//
+This section handles the various displays that can appear in the description of the room.
+!//
+
+&desc`color`question #1489=wh
+&desc`color`cmd #1489=ch
+&desc`color`incomplete #1489=rh
+&desc`color`complete #1489=gh
+&desc`color`submitted #1489=gh
+&desc`color`revision #1489=yh
+
+&desc`message`alreadyapproved #1489=[ansi(yh,Already Approved.)]
+
+/// Displays the current status of this room.
+&desc`status here=[ansi([u(#1489/desc`color`question)],Current Status:%b)][if([hasflag(%#,approved)],[u(#1489/desc`message`alreadyapproved)],[switch([get(#1489/db`%#`status)],NS,[u(desc`status`editable)],S,[ansi([u(#1489/desc`color`submitted)],App Submitted)],R,[u(desc`status`editable)])])]
+
+&desc`status`editable here=[switch([get(#1489/db`%#`2`status)],I,[ansi([u(#1489/desc`color`incomplete)],Incomplete)],C,[ansi([u(#1489/desc`color`complete)],Complete)],R,[ansi(yh,Revisions Required)])]
+
+/// Asks if they are a new player or not.
+&desc`new here=[u(desc`message`new)]%r([ansi(ch,+new Yes)] or [ansi(ch,+new No)])%r[u(desc`new`display)]
+
+&desc`message`new here=[ansi([u(#1489/desc`color`question)],Are you a new player to the MUSH and/or have no existing alts?)]
+
+&desc`new`display here=[if([hasflag(%#,approved)],[u(#1489/desc`message`alreadyapproved)],[if([hasattrval(#1489/db`%#`2`new)],[if([get(#1489/db`%#`2`new)],Yes.,No.)])])]
+
+&desc`yesno`display here=[if([hasflag(%#,approved)],[u(desc`display`approved)],[if([hasattrval(#1489/db`%#`2`new)],[if([get(#1489/db`%#`2`new)],[u(desc`email)]%r%r[u(desc`yes)],[u(desc`email)]%r%r[u(desc`no)])])])]
+
+&desc`display`approved here=[u(desc`email)]%r%r[u(desc`yes)]%r%r[u(desc`no)]
+
+
+/// No - Existing player
+&desc`no here=[u(desc`no`alts)]%r%r
+
+/// No - Alts
+&desc`no`alts here=[u(desc`message`alts)]%r([ansi([u(#1489/desc`color`cmd)],+alts <current alts>)])[u(desc`no`alts`display)]
+
+&desc`message`alts here=[ansi([u(#1489/desc`color`question)],Please list your current alts.)]
+
+&desc`no`alts`display here=[if([hasflag(%#,approved)],%r[u(#1489/desc`message`alreadyapproved)],[if([hasattrval(#1489/db`%#`2`alts)],[switch([first([get(#1489/db`%#`2`alts)],|)],R,[u(#1489/message`revise)])]%r[rest([get(#1489/db`%#`2`alts)],|)])])]
+
+
+/// Yes - New player
+&desc`yes here=[u(desc`yes`name)]%r%r[u(desc`yes`age)]%r%r[u(desc`yes`rped)]%r%r[u(desc`yes`consent)]%r%r[u(desc`yes`source)]
+
+/// Yes - Name
+&desc`yes`name here=[u(desc`message`name)]%r([ansi([u(#1489/desc`color`cmd)],+name <name>)])[u(desc`yes`name`display)]
+
+&desc`message`name here=[ansi([u(#1489/desc`color`question)],Your name, or a commonly used online alias.)]
+
+&desc`yes`name`display here=[if([hasflag(%#,approved)],%r[u(#1489/desc`message`alreadyapproved)],[if([hasattrval(#1489/db`%#`2`name)],[switch([first([get(#1489/db`%#`2`name)],|)],R,[u(#1489/message`revise)])]%r[rest([get(#1489/db`%#`2`name)],|)])])]
+
+/// Yes - Age
+&desc`yes`age here=[u(desc`message`age)]%r([ansi([u(#1489/desc`color`cmd)],+age <age>)])[u(desc`yes`age`display)]
+
+&desc`message`age here=[ansi([u(#1489/desc`color`question)],Your current age.)]
+
+&desc`yes`age`display here=[if([hasflag(%#,approved)],%r[u(#1489/desc`message`alreadyapproved)],[if([hasattrval(#1489/db`%#`2`age)],[switch([first([get(#1489/db`%#`2`age)],|)],R,[u(#1489/message`revise)])]%r[rest([get(#1489/db`%#`2`age)],|)])])]
+
+/// Yes - Previously RPed
+&desc`yes`rped here=[u(desc`message`rped)]%r([ansi([u(#1489/desc`color`cmd)],+rped <brief description of previous RP experience>)])[u(desc`yes`rped`display)]
+
+&desc`message`rped here=[ansi([u(#1489/desc`color`question)],Have you ever role-played online before?)]
+
+&desc`yes`rped`display here=[if([hasflag(%#,approved)],%r[u(#1489/desc`message`alreadyapproved)],[if([hasattrval(#1489/db`%#`2`rped)],[switch([first([get(#1489/db`%#`2`rped)],|)],R,[u(#1489/message`revise)])]%r[align(70,[rest([get(#1489/db`%#`2`rped)],|)])])])]
+
+/// Yes - What is consent.
+&desc`yes`consent here=[u(desc`message`consent)]%r([ansi([u(#1489/desc`color`cmd)],+consent <brief description of consent-based role-playing)])[u(desc`yes`consent`display)]
+
+&desc`message`consent here=[ansi([u(#1489/desc`color`question)],What do you consider to be consent-based role-playing?)]
+
+&desc`yes`consent`display here=[if([hasflag(%#,approved)],%r[u(#1489/desc`message`alreadyapproved)],[if([hasattrval(#1489/db`%#`2`consent)],[switch([first([get(#1489/db`%#`2`consent)],|)],R,[u(#1489/message`revise)])]%r[align(70,[rest([get(#1489/db`%#`2`consent)],|)])])])]
+
+/// Yes - Where they heard about the MUSH.
+&desc`yes`source here=[u(desc`message`source)]%r([ansi([u(#1489/desc`color`cmd)],+source <brief description where you heard about the MUSH)])[u(desc`yes`source`display)]
+
+&desc`message`source here=[ansi([u(#1489/desc`color`question)],Where did you hear about Macross: New Horizon?)]
+
+&desc`yes`source`display here=[if([hasflag(%#,approved)],%r[u(#1489/desc`message`alreadyapproved)],[if([hasattrval(#1489/db`%#`2`source)],[switch([first([get(#1489/db`%#`2`source)],|)],R,[u(#1489/message`revise)])]%r[align(70,[rest([get(#1489/db`%#`2`source)],|)])])])]
+
+
+/// Email - For both.
+&desc`email here=[u(desc`message`email)]%r([ansi([u(#1489/desc`color`cmd)],+email <email address>)])[u(desc`email`display)]
+
+&desc`message`email here=[ansi([u(#1489/desc`color`question)],What is your current email address? (Not publically viewable.))]
+
+&desc`email`display here=[if([hasflag(%#,approved)],%r[u(#1489/desc`message`alreadyapproved)],[if([hasattrval(#1489/db`%#`2`email)],[switch([first([get(#1489/db`%#`2`email)],|)],R,[u(#1489/message`revise)])]%r[rest([get(#1489/db`%#`2`email)],|)])])]
+
+!--
+
+-- command +new
+//
+This command allows the player to indicate whether they are new to the MUSH or not. Accepts Yes/Y/No/N. Depending upon their answer to this question, the other questions they need to answer will be different. The no-argument version of this command simply returns what has been entered so far.
+
+In:
+	%0 - The answer they've given (Yes/Y/No/N)
+	
+Out:
+	db`#`2`new - The DB attribute containing their answer in binary format. 0 if not new, 1 if they are.
+!//
+
+&cmd_+new here=$+new *:think [if([hasflag(%#,approved)],[pemit(%#,Error - You are already approved.)],[u(#1489/room2`new,[secure([decompose(%0)])])])];think [u(checkstatus)]
+
+&cmd_+new-noarg here=$+new:think [if([hasattrval(#1489/db`%#`2`new)],[pemit(%#,[switch([get(#1489/db`%#`2`new)],0,No.,1,Yes.)])],[pemit(%#,Nothing entered yet.)])]
+
+!--
+
+-- function new
+//
+The main code to run the +new command.
+
+In:
+	%0 - The answer they've given (Yes/Y/No/N)
+	
+Out:
+	db`#`2`new - The DB attribute containing their answer in binary format. 0 if not new, 1 if they are.
+!//
+
+&room2`new #1489=[switch([lcstr(%0)],y,[u(room2`new`yes)],yes,[u(room2`new`yes)],n,[u(room2`new`no)],no,[u(room2`new`no)],[u(room2`new`error)])]
+
+&room2`new`yes #1489=[attrib_set(#1489/db`%#`2`new,1)][u(message`2`new`yes)]
+
+&message`2`new`yes #1489=[pemit(%#,Welcome to Macross: New Horizon! Please answer a few more questions in the description of this room.)]
+
+&room2`new`no #1489=[attrib_set(#1489/db`%#`2`new,0)][u(message`2`new`no)]
+
+&message`2`new`no #1489=[pemit(%#,Please answer a couple more questions in this room's description.)]
+
+&room2`new`error #1489=[pemit(%#,Error - Invalid response to +new. Please use Yes/Y/No/N.)]
+
+!--
+
+-- command +email
+//
+This command records the player's current email address. It also stores this on the character object, though it is initially hidden from public viewing. The no-argument version simply shows what they have given.
+
+In:
+	%0 - The given email address.
+	
+Out:
+	db`#`2`email - The DB attribute containing the given email address.
+!//
+
+&cmd_+email here=$+email *:think [if([hasflag(%#,approved)],[pemit(%#,Error - You are already approved.)],[u(#1489/room2`email,[left([secure([decompose(%0)])],[u(#1489/limit`2`email)])])])];think [u(checkstatus)]
+
+&limit`2`email #1489=50
+
+&cmd_+email-noarg here=$+email:think [if([hasattrval(#1489/db`%#`2`email)],[pemit(%#,[rest([get(#1489/db`%#`2`email)],|)])],[pemit(%#,Nothing entered yet.)])]
+
+!--
+
+-- function email
+//
+The main code to run the +email command.
+
+In:
+	%0 - The given email address.
+	
+Out:
+	db`#`2`email - The DB attribute containing the given email address.
+!//
+
+&room2`email #1489=[if([strmatch(%0,*@*)],[attrib_set(#1489/db`%#`2`email,C|%0)][attrib_set(%#/email,!%0)][u(message`2`email)],[u(room2`email`error)])]
+
+&message`2`email #1489=[pemit(%#,You have entered '[rest([get(#1489/db`%#`2`email)],|)]' for your email address.)]
+
+&room2`email`error #1489=[pemit(%#,Error - Invalid email address.)]
+
+!--
+
+-- command +alts
+//
+This command records the player's current alts. The no-argument version simply shows what they have given.
+
+In:
+	%0 - The given list of alts.
+	
+Out:
+	db`#`2`alts - The DB attribute containing the given list of alts.
+!//
+
+&cmd_+alts here=$+alts *:think [if([hasflag(%#,approved)],[pemit(%#,Error - You are already approved.)],[u(#1489/room2`alts,[left([secure([decompose(%0)])],[u(#1489/limit`2`alts)])])])];think [u(checkstatus)]
+
+&limit`2`alts #1489=100
+
+&cmd_+alts-noarg here=$+alts:think [if([hasattrval(#1489/db`%#`2`alts)],[pemit(%#,[rest([get(#1489/db`%#`2`alts)],|)])],[pemit(%#,Nothing entered yet.)])]
+
+!--
+
+-- function alts
+//
+The main code to run the +alts command.
+
+In:
+	%0 - The given list of alts.
+	
+Out:
+	db`#`2`alts - The DB attribute containing the given list of alts.
+!//
+
+&room2`alts #1489=[attrib_set(#1489/db`%#`2`alts,C|%0)][u(message`2`alts)]
+
+&message`2`alts #1489=[pemit(%#,You have entered the following alts: [rest([get(#1489/db`%#`2`alts)],|)])]
+
+!--
+
+-- command +name
+//
+This command records the player's real name or well known alias. The no-argument version simply shows what they have given.
+
+In:
+	%0 - The given name or alias.
+	
+Out:
+	db`#`2`name - The DB attribute containing the given name or alias.
+!//
+
+&cmd_+name here=$+name *:think [if([hasflag(%#,approved)],[pemit(%#,Error - You are already approved.)],[u(#1489/room2`name,[left([secure([decompose(%0)])],[u(#1489/limit`2`name)])])])];think [u(checkstatus)]
+
+&limit`2`name #1489=40
+
+&cmd_+name-noarg here=$+name:think [if([hasattrval(#1489/db`%#`2`name)],[pemit(%#,[rest([get(#1489/db`%#`2`name)],|)])],[pemit(%#,Nothing entered yet.)])]
+
+!--
+
+-- function name
+//
+The main code to run the +name command.
+
+In:
+	%0 - The given name or alias.
+	
+Out:
+	db`#`2`name - The DB attribute containing the given name or alias.
+!//
+
+&room2`name #1489=[attrib_set(#1489/db`%#`2`name,C|%0)][u(message`2`name)]
+
+&message`2`name #1489=[pemit(%#,You name or alias is: [rest([get(#1489/db`%#`2`name)],|)])]
+
+!--
+
+-- command +age
+//
+This command records the player's age. The no-argument version simply shows what they have given.
+
+In:
+	%0 - The given age.
+	
+Out:
+	db`#`2`age - The DB attribute containing the given age.
+!//
+
+&cmd_+age here=$+age *:think [if([hasflag(%#,approved)],[pemit(%#,Error - You are already approved.)],[u(#1489/room2`age,[left([secure([decompose(%0)])],[u(#1489/limit`2`age)])])])];think [u(checkstatus)]
+
+&limit`2`age #1489=2
+
+&cmd_+age-noarg here=$+age:think [if([hasattrval(#1489/db`%#`2`age)],[pemit(%#,[rest([get(#1489/db`%#`2`age)],|)])],[pemit(%#,Nothing entered yet.)])]
+
+!--
+
+-- function age
+//
+The main code to run the +age command.
+
+In:
+	%0 - The given age.
+	
+Out:
+	db`#`2`age - The DB attribute containing the given age.
+!//
+
+&room2`age #1489=[attrib_set(#1489/db`%#`2`age,C|%0)][u(message`2`age)]
+
+&message`2`age #1489=[pemit(%#,You are [rest([get(#1489/db`%#`2`age)],|)] years old.)]
+
+!--
+
+-- command +rped
+//
+This command records the player's response to whether they've roleplayed online before. The no-argument version simply shows what they have given.
+
+In:
+	%0 - The given response to the question.
+	
+Out:
+	db`#`2`rped - The DB attribute containing the given response.
+!//
+
+&cmd_+rped here=$+rped *:think [if([hasflag(%#,approved)],[pemit(%#,Error - You are already approved.)],[u(#1489/room2`rped,[left([secure([decompose(%0)])],[u(#1489/limit`2`rped)])])])];think [u(checkstatus)]
+
+&limit`2`rped #1489=200
+
+&cmd_+rped-noarg here=$+rped:think [if([hasattrval(#1489/db`%#`2`rped)],[pemit(%#,[rest([get(#1489/db`%#`2`rped)],|)])],[pemit(%#,Nothing entered yet.)])]
+
+!--
+
+-- function rped
+//
+The main code to run the +rped command.
+
+In:
+	%0 - The given response to the question.
+	
+Out:
+	db`#`2`rped - The DB attribute containing the given response.
+!//
+
+&room2`rped #1489=[attrib_set(#1489/db`%#`2`rped,C|%0)][u(message`2`rped)]
+
+&message`2`rped #1489=[pemit(%#,Your previous RP experience: [rest([get(#1489/db`%#`2`rped)],|)])]
+
+!--
+
+-- command +consent
+//
+This command records the player's response to what they consider to be consent-based RP. The no-argument version simply shows what they have given.
+
+In:
+	%0 - The given response to the question.
+	
+Out:
+	db`#`2`consent - The DB attribute containing the given response.
+!//
+
+&cmd_+consent here=$+consent *:think [if([hasflag(%#,approved)],[pemit(%#,Error - You are already approved.)],[u(#1489/room2`consent,[left([secure([decompose(%0)])],[u(#1489/limit`2`consent)])])])];think [u(checkstatus)]
+
+&limit`2`consent #1489=200
+
+&cmd_+consent-noarg here=$+consent:think [if([hasattrval(#1489/db`%#`2`consent)],[pemit(%#,[rest([get(#1489/db`%#`2`consent)],|)])],[pemit(%#,Nothing entered yet.)])]
+
+!--
+
+-- function consent
+//
+The main code to run the +consent command.
+
+In:
+	%0 - The given response to the question.
+	
+Out:
+	db`#`2`consent - The DB attribute containing the given response.
+!//
+
+&room2`consent #1489=[attrib_set(#1489/db`%#`2`consent,C|%0)][u(message`2`consent)]
+
+&message`2`consent #1489=[pemit(%#,You consider consent-based RP to be: [rest([get(#1489/db`%#`2`consent)],|)])]
+
+!--
+
+-- command +source
+//
+This command records the player's response to where they heard about New Horizon. The no-argument version simply shows what they have given.
+
+In:
+	%0 - The given response to the question.
+	
+Out:
+	db`#`2`source - The DB attribute containing the given response.
+!//
+
+&cmd_+source here=$+source *:think [if([hasflag(%#,approved)],[pemit(%#,Error - You are already approved.)],[u(#1489/room2`source,[left([secure([decompose(%0)])],[u(#1489/limit`2`source)])])])];think [u(checkstatus)]
+
+&limit`2`source #1489=200
+
+&cmd_+source-noarg here=$+source:think [if([hasattrval(#1489/db`%#`2`source)],[pemit(%#,[rest([get(#1489/db`%#`2`source)],|)])],[pemit(%#,Nothing entered yet.)])]
+
+!--
+
+-- function source
+//
+The main code to run the +source command.
+
+In:
+	%0 - The given response to the question.
+	
+Out:
+	db`#`2`source - The DB attribute containing the given response.
+!//
+
+&room2`source #1489=[attrib_set(#1489/db`%#`2`source,C|%0)][u(message`2`source)]
+
+&message`2`source #1489=[pemit(%#,How you heard about New Horizon: [rest([get(#1489/db`%#`2`source)],|)])]
+
+!--
+
+-- function checkstatus
+//
+The code in this function involves checking the status of this room to see if it can be considered complete or not. This information is stored in db`#`2`status as C - Complete, I - Incomplete or R - Revisions Required.
+
+Out:
+	db`#`2`status - Changes this between C/I/R depending upon the status of the questions.
+!//
+
+&checkstatus here=[switch([get(#1489/db`%#`2`new)],0,[u(checkstatus`run,old)],1,[u(checkstatus`run,new)])]
+
+&checkstatus`run here=[setq(complete,1)][iter([u(checkstatus`%0`dblist)],[switch([first([get(#1489/[itext(0)])],|)],R,[attrib_set(#1489/db`%#`2`status,R)][setq(complete,0)][ibreak()],C,,[attrib_set(#1489/db`%#`2`status,I)][setq(complete,0)][ibreak()])])][if(%q<complete>,[attrib_set(#1489/db`%#`2`status,C)])]
+
+&checkstatus`old`dblist here=db`%#`2`alts db`%#`2`email
+
+&checkstatus`new`dblist here=db`%#`2`email db`%#`2`name db`%#`2`age db`%#`2`rped db`%#`2`consent db`%#`2`source
+
+!--

@@ -1,0 +1,124 @@
+Name: Buff Duration Code
+Programmer: Vincent Cross (Astrus)
+Date: June 2013
+
+Purpose:
+
+This file is dedicated to the code necessary to tick over the duration of a buff/debuff when a combat action is made. A combat action is, as of this writing, +buff, +debuff, +check, +compare, +gscheck, +attack and +defend. The code will use a 'window' system, during which a player will be able to perform multiple combat actions together so that they only count as one 'tick' of the buff/debuff's duration. For the full combat system, +defend takes priority over +attack. So it is in +defend that the code will be contained. The tentative process for the code in a +defend is as follows:
+
+1) First the code will check if the attacker is buffed. If he isn't, skip to 3). If he is, continue on.
+2) Next, the code will check if there is a window for the attacker
+	a) If there is a window, it will check if the window has expired (compared to the time of the +attack of this +defend)
+		Y.1) If it has expired, subtract 1 tick from the duration.
+		Y.2) Check if the duration now equals 0.
+			Y) If it does equal 0, remove the buff from the attacker.
+			N) Still a buff left, start a new window at the time of the +attack this +defend is reponding to.
+		N.1) If it has not expired, do nothing.
+	b) If there is no window, it will create a window with the time of the +attack this +defend is reponding to.
+
+3) Now the code will check if the defender is buffed. If he isn't, end the code. If he is, the above process repeats except this time for the defender.
+
+The 'window' will simply be an attribute on the player that records, in secs(), the start of the window. This will be compared against the time of the combat action, to see if it falls within the time limit which will be a global attribute, also in secs. At the time of this writing, it's 3 minutes or 180 seconds.
+
+
+++++Code++++
+
+Implementation:
+
+[u(#1419/duration`run,type,caller,target)]
+
+----duration`run----
+
+The main run code. The idea is this attribute can be called from within other commands. It doesn't actually influence the results of those commands beyond the changes it makes to the caller/target's stats. But this does mean it should be called before anything is calculated using stats.
+
+In:
+	%0 - The type of command (mostly just for defending)
+	%1 - Dbref of the caller
+	%2 - Dbref of the target
+
+Globals:
+	global`buff`window`duration - 180
+	
+&duration`run #1419=[if([u(duration`run`checkbuffed,%1)],[u(duration`run2,%0,%1)])][if(%2,[if([u(duration`run`checkbuffed,%2)],[u(duration`run2,[switch(%0,defend,defend2,%0)],%2)])])]
+
+&duration`run`checkbuffed #1419=[if([hasattrval(%0,buff)],1,[if([hasattrval(%0,debuff)],1,0)])]
+
+
+%0 - Type of the command
+%1 - Dbref to work with
+
+&duration`run2 #1419=[if([hasattrval(%1,buff`window)],[if([u(duration`run2`checkexpired,%0,%1)],[u(duration`tick,%0,%1)])],[u(duration`createwindow,%0,%1)])]
+
+----checkexpired----
+
+If the time passed from the existing window to the current time is greater than three minutes, yes. Else no.
+
+(Current - Existing) > 180 secs
+
+In:
+	%0 - Type of the command
+	%1 - Dbref of subject
+	
+
+Out:
+	1/0 - Whether the window has expired
+
+
+&duration`run2`checkexpired #1419=[gt([u(duration`run2`checkexpired`pos,[sub([switch(%0,defend2,[before([after(%q<attackattrib>,`)],-)],secs())],get(%1/buff`window))])],u(global`buff`window`duration))]
+
+&duration`run2`checkexpired`pos #1419=[if([lt(%0,0)],[mul(%0,-1)],%0)]
+
+----tick----
+
+Alters the duration of the current buff/debuff, calling the code to clear it if necessary.
+
+In:
+	%0 - Type of the command
+	%1 - Dbref of subject
+
+Registers:
+	attackattrib - When called during a defend command, the attackattrib register should be available for use so that the dbref of the attacker can be determined.
+	
+	info - <target>^<type>^<buffdata>^<sub>
+	
+&duration`tick #1419=[setq(info,%1)][setq(info,%q<info>^[if([hasattrval(%q<info>,buff)],buff,debuff)])][setq(info,%q<info>^[get([first(%q<info>,^)]/[elements(%q<info>,2,^)])])][setq(info,%q<info>^[sub([last([last(%q<info>,^)],|)],1)])][if([last(%q<info>,^)],[u(duration`tick`stillbuff,%0)],[u(duration`killbuff)])]
+
+&duration`tick`stillbuff #1419=[attrib_set([first(%q<info>,^)]/[elements(%q<info>,2,^)],[replace([elements(%q<info>,3,^)],[words([elements(%q<info>,3,^)],|)],[last(%q<info>,^)],|)])][u(duration`createwindow,%0,[first(%q<info>,^)])][unsetq(info)]
+
+
+----killbuff----
+
+A small section of code called to see if it's time to clear the buff.
+
+Registers:
+	info - If something is here, then need to clear the buff/debuff.
+
+&duration`killbuff #1419=[if(%q<info>,[u(buff`func`clear,[elements(%q<info>,2,^)],[first(%q<info>,^)])][attrib_set([first(%q<info>,^)]/buff`window,)])]
+
+----createwindow----
+
+Creates a new window.
+
+In:
+	%0 - Type of the command
+	%1 - Dbref of the subject
+
+Registers:
+	attackattrib - When called during a defend command, the attackattrib register should be available for use so that the dbref of the attacker can be determined.
+	
+&duration`createwindow #1419=[attrib_set(%1/buff`window,[u(duration`findtime,%0)])]
+
+
+----findtime----
+
+Finds the time depending upon what type of command was used. +check, +gscheck and +compare use the current time. +defend uses the time of the +attack that is being responded to.
+
+In:
+	%0 - If defend2, then it's pointing to the +attacker, everything else can simply use secs()
+	
+Registers:
+	attackattrib - When called during a defend command, the attackattrib register should be available for use so that the time of the attack can be determined.
+	
+&duration`findtime #1419=[switch(%0,defend2,[u(duration`findtime`defend)],[secs()])]
+
+&duration`findtime`defend #1419=[before(after(%q<attackattrib>,`),-)]

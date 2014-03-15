@@ -1,0 +1,116 @@
+Filename: Chargen Database
+Date: December 2013
+Programmer: Vincent Cross
+
+Purpose:
+
+The Chargen Database will contain records of all character applications currently being processed. The database will need to maintain records of the app in all steps, including revisions and reasons for sendback. Below are a list of sections in a standard New Horizon app that the database will need to keep records of, along with other misc stuff for the code to run.
+
+Note that most questions for room 2 and onwards will have an individual status of C (complete) or R (revisions required). The room descriptions will then check for R and display this so that players can know which parts of their app require revisions.
+
+1) Personal Info  
+
+Are you a new player/have no existing alts?
+
+No:
+    - Current Alts
+    - Email Address
+    
+Yes:
+
+    - Name (real or commonly known online alias)
+    - Age
+    - Email Address
+    
+    - Have you ever role-played online?
+    - What is consent based RP
+    - How did you find out about us.
+    
+    - Section complete? (C/I/R)
+    
+2) Basic Character Information
+
+    - Type of character?
+    FC: Error, not available in chargen. See regular application.
+    OFC: Error, not available in chargen. See regular application.
+    Established OC: Error, not available in chargen. See regular application.
+    Rookie OC: Thumbsup!
+
+    - Name
+    - Date of Birth (mention current year)
+    - Race (Human, Zentran/Meltran, Zolan, Hybrid of two/three)
+    - Faction (UN Spacy, Anti-UN, Mercenary, Pirate, Civilian)
+    - Function (What do they do?)
+    - Rank (if applicable)
+    - Wealth (5+ will require a decent amount of justification)
+    - Quote
+    - Profile (paragraph)
+    
+    - Section complete? (C/I/R)
+    
+3) Personality
+
+    - What is their personality? (This will require a paging system)
+    
+    - Section complete? (C/I/R)
+    
+4) History
+
+    - What is their history? (This will require a paging system)
+    - Any long term plans? (optional)
+    
+    - Section complete? (C/I/R)
+    
+5) Stats
+
+    - Luck (random)
+    - Stats
+        - Rookie OC
+            - Human
+                - 1 stat maxed to 5
+                - Rest maxed to 4
+            - Pure Zentradi
+                - Strength, Endurance, Intelligence to 6
+                - Rest maxed at 4, except one maxed at 3 if above is done
+            - Zolan
+                - Spirit to 6
+                - Rest maxed at 4, except one maxed at 3 if above is done
+
+    - Section complete? (C/I/R)
+    
+6) Skills
+
+    - Skills
+        - Rookie OC
+            - 2 skills at 5
+            - 5 skills at 4
+            - no limit on skills at 3 and under
+    
+    - Section complete? (C/I/R)
+    
+7) Extra Stuff
+
+    - Special equipment requested
+    - Any final notes to add.
+	
+	- Section Complete? (C/I/R)
+    
+8) Submission
+
+    - Status of submition
+        - NS : Not submitted
+        - S : Submitted
+        - R : Returned
+        - A : Approved
+        
+Comms:
+
+[Fri Dec 27 21:46:14 2013] <Admin> Astrus says, "So Xee, with the new chargen how do you want to handle charbit creation? I can code up some stuff so guests/players can create their own charbits (with restrictions and monitorings), or we can leave it in the hands of staff."
+[Fri Dec 27 21:47:33 2013] <Admin> Xeero says, "We'll set it up so people can setup their own charbits. Honestly that's been the name of the game for this one. Get their charbits done and in so they'll feel a little more invested while we're poring over their apps"
+[Fri Dec 27 21:48:47 2013] <Admin> Astrus says, "Alright. I was thinking about limiting existing characters to one charbit every 24 hours. Unfortunately I can't limit the guests the same way as there's no way to tell if a guest is the same as a previous one."
+[Fri Dec 27 21:49:04 2013] <Admin> Astrus says, "... Unless I looked at their host info."
+[Fri Dec 27 21:49:21 2013] <Admin> Astrus :|a
+[Fri Dec 27 21:50:12 2013] <Admin> Xeero says, "Go off of host info. Let the charbit creation pass and then send an alert message to the admin that there's a possible abuse attempt"
+[Fri Dec 27 21:51:31 2013] <Admin> Xeero says, "They'll be stuck in the OOC area anyways. Alternatively we can set it so that if the same host address has more than 3 char creation attempts associated wit it we can halt further attempts pending admin approval (if this is possile)"
+[Fri Dec 27 21:52:09 2013] <Admin> Astrus says, "Yeah, I can do that. Also I was thinking of setting up a new admin channel which can monitor char creation."
+[Fri Dec 27 21:52:54 2013] <Admin> Xeero says, "Good idea"

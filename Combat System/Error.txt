@@ -1,0 +1,64 @@
+Name: Error
+Programmer: Vincent Cross (Astrus)
+Date: May 2013
+
+Purpose:
+
+This file contains the code and messages for the various errors that will pop up in the combat system code.
+
+
+----------------------
+error
+
+In: 
+	%0: Error code
+	
+Out: Error message
+	
+&error #1419=[pemit(%#,Error Code: [u(error`%0)])]
+
+&error`1 #1419=1 - You don't have enough luck to do that.
+&error`2 #1419=2 - That is not a valid target.
+&error`3 #1419=3 - Multiple matches found: [iter(%q<matchlist>,[capstr([lcstr([edit([itext(0)],_,%b)])])],,[,]%b)][unsetq(matchlist)]
+&error`4 #1419=4 - No stat/skill/vehicle stat match found.
+&error`5 #1419=5 - Please select Melee Weapons, Gunnery or Hand to Hand while inside a vehicle to check Targeting.
+&error`6 #1419=6 - Please select one of the Spiritia Skills while inside a vehicle to check Spiritia Amp.
+&error`7 #1419=7 - Must be in a vehicle to check that vehicle stat.
+&error`8 #1419=8 - Invalid +compare format (+compare <target>=<your stat>:<their stat>)
+&error`9 #1419=9 - Cannot find a player by that name.
+&error`10 #1419=10 - That player is not currently online.
+&error`11 #1419=11 - The target player is not in the same room as you.
+&error`12 #1419=12 - Invalid +gscheck format (+gscheck <diff>:<stat> OR +gscheck <target>=<diff>:<stat>)
+&error`13 #1419=13 - Invalid +attack format.
+&error`14 #1419=14 - Not an approved player.
+&error`15 #1419=15 - Invalid weapon data.
+&error`16 #1419=16 - Invalid weapon selection.
+&error`17 #1419=17 - That target is not in a capital ship.
+&error`18 #1419=18 - You don't have enough luck for that attack.
+&error`19 #1419=19 - Invalid format for an AOE attack.
+&error`20 #1419=20 - There are no attacks in your queue.
+&error`21 #1419=21 - No attack of that number in your +defend queue.
+&error`22 #1419=22 - Invalid queue number.
+&error`23 #1419=23 - Invalid format for a +defend.
+&error`24 #1419=24 - No attack of that number in your +defend queue.
+&error`25 #1419=25 - Invalid weapon selection.
+&error`26 #1419=26 - Cannot defend against an attack while VF is in fighter mode.
+&error`27 #1419=27 - That weapon type cannot be intercepted. Missile weapons only.
+&error`28 #1419=28 - Invalid performance skill for +%q<type>.
+&error`29 #1419=29 - That target already has a %q<type>.
+&error`30 #1419=30 - You don't have that Performance Skill.
+&error`31 #1419=31 - You don't have the Enhance skill.
+&error`32 #1419=32 - Does not have that Spiritia skill.
+&error`33 #1419=33 - You do not currently have a buff/debuff.
+&error`34 #1419=34 - You must be in a vehicle to apply a Spiritia Amp %q<type>.
+&error`35 #1419=35 - You don't have enough ammo to fire [elements(%q<weapondata>,2,|)].
+&error`36 #1419=36 - A dramatic attack requires a dramatic defense. (+defend <action> <action> <action>)
+&error`37 #1419=37 - Your vehicle must have some Spiritia Amp. stat to perform an Amp %q<type>.
+&error`38 #1419=38 - You must be on the bridge of a capital ship to use an AOE %q<type>.
+&error`39 #1419=39 - You are currently KOed so cannot perform that command.
+&error`40 #1419=40 - Your vehicle is currenly KOed so cannot perform that command.
+&error`41 #1419=41 - Your target is currently KOed so you cannot perform that command.
+&error`42 #1419=42 - Your target's vehicle is currently KOed so you cannot perform that command.
+&error`43 #1419=43 - Both arguments must be numbers.
+&error`44 #1419=44 - You are not in a vehicle.
+&error`45 #1419=45 - That weapon does not use ammo.

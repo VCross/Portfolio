@@ -1,0 +1,108 @@
+Name: +compare
+Programmer: Vincent Cross (Astrus)
+Date: May 2013
+
+Purpose:
+
+This file contains the code for the modified +compare command. The main +compare command will go on the object #1418, while the majority of the code will go on the object #1419. From what I can gather from the requirements, the process of a +compare is as follows:
+
+1) Do a check for the caller's chosen stat/skill/vstat
+2) Do a check for the target's chosen stat/skill/vstat
+3) Highest roll wins. In the event of a draw, caller wins.
+
+So, should be fairly simple. Command format is as follows:
+
++compare <target>=<calling s/sk/vs>:<target s/sk/vs>
++compare Astrus=Gunnery:Defense
+
+
+++++Code++++
+
+----cmd_+compare----
+
+The main command for the compare code. Much like with +check, has the two versions. The normal version and the personal switch version.
+
+&cmd_+compare #1418=$+compare *:think [setq(error,0,commandrun,1)][u(#1419/compare,[decompose(%0)],%#)];think [u(#1419/func`cango,#1419/compare`result)];think [u(#1419/func`cango,#1419/duration`run,compare,%#,%q<targetDbref>)][unsetq(targetdbref)]
+
+&cmd_+compare2 #1418=$+compare/personal *:think [setq(error,0,commandrun,1)][u(#1419/compare,[decompose(%0)],%#,P)];think [u(#1419/func`cango,#1419/compare`result)];think [u(#1419/func`cango,#1419/duration`run,compare,%#,%q<targetDbref>)][unsetq(targetdbref)]
+
+
+
+----compare----
+
+The main compare code. First determines if the entered command is valid. Then sets about directing the rest of the code running.
+
+In:
+	%0 - The argument of the command
+	%1 - The calling player.
+	%2 - Special circumstance:
+		P - Personal switch override.
+		
+Registers:
+	targetPlayer - Target name
+	targetDbref - Dbref of the target player
+	callingSel - Caller's stat/skill/vstat selection
+	targetSel - Target's stat/skill/vstat selection
+
+Out:
+	result - Register containing the result of the compare.
+	
+&compare #1419=[if([u(compare`regmatch,%0)],,[setq(error,8)])][u(func`cango,compare`run,%2)]
+
+&compare`regmatch #1419=[regmatch(%0, (.+)=(.+)\:(.+), 1:targetPlayer 2:callingSel 3:targetSel)]
+
+&compare`run #1419=[u(compare`check)][u(func`cango,compare`run2,%0)]
+
+&compare`check #1419=[u(compare`check`targetisplayer)][u(func`cango,compare`check`targetonline)][u(func`cango,compare`check`inroom)]
+
+&compare`check`targetisplayer #1419=[if([hastype(*%q<targetPlayer>,player)],[setq(targetDbref,[num(*%q<targetPlayer>)])][unsetq(targetPlayer)],[setq(error,9)])]
+
+&compare`check`targetonline #1419=[if([hasflag(%q<targetDbref>,connected)],,[setq(error,10)])]
+
+&compare`check`inroom #1419=[if([or([if([and([get([loc(%#)]/vehicle)],[get([loc(%q<targetdbref>)]/vehicle)])],[match([loc([loc(%#)])],[loc([loc(%q<targetdbref>)])])])],[if([get([loc(%#)]/vehicle)],[match([loc([loc(%#)])],[loc(%q<targetdbref>)])])],[if([get([loc(%q<targetdbref>)]/vehicle)],[match([loc(%#)],[loc([loc(%q<targetdbref>)])])])],[match([loc(%#)],[loc(%q<targetdbref>)])])],,[setq(error,11)])]
+
+
+----compare`run2----
+
+The next main section of the compare code that is run after all the conditional checks of the previous section have been met. Runs the actual +checks.
+
+In:
+	%0 - Special circumstances
+
+&compare`run2 #1419=[setq(callingResult,[u(check,%q<callingSel>,%#,%0)])][setq(callingRoll,%q<roll>)][setq(targetResult,[u(check,%q<targetSel>,%q<targetDbref>,%0)])][setq(targetRoll,%q<roll>)][u(compare`debug`base)][u(compare`debug`result)][unsetq(roll)]
+
+
+----compare`result----
+
+&compare`result #1419=[remit([u(compare`result`destination)],[ansi([u(color`compare`message)],[u(compare`result`run)])])]
+
+&compare`result`run #1419=[u(compare`result`callselect)]%b[u(compare`result`targetselect)]%b[u(compare`result`result)]
+
+&compare`result`destination #1419=[u(check`result`destination)]
+
+&compare`result`callselect #1419=[u(check`result`[first(%q<callingResult>)],%q<callingResult>,%q<callingRoll>)]
+
+&compare`result`targetselect #1419=[u(check`result`[first(%q<targetResult>)],%q<targetResult>,%q<targetRoll>)]
+
+&compare`result`result #1419=[switch(%q<callingRoll>|%q<targetRoll>,1|[u(global`check`dice`sides)],[u(compare`result`supercrit)],[u(global`check`dice`sides)]|1,[u(compare`result`supercrit)],1|1,[u(compare`result`superfail)],[u(global`check`dice`sides)]|[u(global`check`dice`sides)],[u(compare`result`supersuccess)],1|*,[u(compare`result`targetwin)],[u(global`check`dice`sides)]|*,[u(compare`result`callwin)],*|1,[u(compare`result`callwin)],*|[u(global`check`dice`sides)],[u(compare`result`targetwin)],[if([gt([last(%q<callingResult>,|)],[last(%q<targetResult>,|)])],[u(compare`result`callwin)],[if([gt([last(%q<targetResult>,|)],[last(%q<callingResult>,|)])],[u(compare`result`targetwin)],[u(compare`result`draw)])])])]
+
+&compare`result`callwin #1419=[ansi([u(color`compare`name)],%N)] wins.
+
+&compare`result`targetwin #1419=[ansi([u(color`compare`name)],[name([elements(%q<targetResult>,2,|)])])] wins.
+
+&compare`result`draw #1419=It's a draw, so [ansi([u(color`compare`name)],%N)] wins!
+
+&compare`result`superfail #1419=It's a [ansi([u(color`cf)],Super Fail)]!
+
+&compare`result`supersuccess #1419=It's a [ansi([u(color`cs)],Super Success)]!
+
+&compare`result`supercrit #1419=It's a [ansi([u(color`compare`supercrital)],Super Crit)]!
+
+----compare`debug----
+
+Various information reported during the code to make debugging easier.
+
+&compare`debug #1419=[if([u(debug`compare)],[pemit(%#,%0)])]
+
+&compare`debug`base #1419=[u(compare`debug,[ansi(yh,--Compare Debug--)])]
+&compare`debug`result #1419=[u(compare`debug,Calling Result: %q<callingResult>%rTarget Result: %q<targetResult>)]

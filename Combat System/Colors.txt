@@ -1,0 +1,68 @@
+Name: Colors
+Programmer: Vincent Cross (Astrus)
+Date: May 2013
+
+Purpose:
+
+Contains the attributes that list the ansi colours to use for all the messages in the combat system.
+
+--------------------------
+
+&color`message`base #1419=wh
+
+&color`message`luck #1419=[u(color`message`base)]
+&color`luck`name #1419=ch
+
+&color`check`result`name #1419=ch
+&color`check`message #1419=[u(color`message`base)]
+&color`check`select #1419=ch
+&color`check`roll #1419=[u(color`roll)]
+&color`check`cs #1419=[u(color`cs)]
+&color`check`cf #1419=[u(color`cf)]
+
+&color`roll #1419=ch
+&color`cs #1419=gh
+&color`cf #1419=rh
+&color`sc #1419=gh
+
+&color`compare`message #1419=[u(color`message`base)]
+&color`compare`name #1419=ch
+&color`compare`supercritical #1419=[u(color`sc)]
+
+&color`gscheck`name #1419=ch
+&color`gscheck`message #1419=[u(color`message`basE)]
+&color`gscheck`ve #1419=gh
+&color`gscheck`e #1419=gh
+&color`gscheck`n #1419=yh
+&color`gscheck`h #1419=rh
+&color`gscheck`vh #1419=rh
+&color`gscheck`i #1419=mh
+
+&color`queue`message #1419=[u(color`message`base)]
+&color`queue`name #1419=ch
+
+&color`defend #1419=[u(color`message`base)]
+&color`defend`name #1419=ch
+&color`defend`attacktype`normal #1419=yh
+&color`defend`attacktype`prec #1419=wh
+&color`defend`attacktype`unorth #1419=wh
+&color`defend`attacktype`aoe #1419=wh
+&color`defend`defendtype`evade #1419=wh
+&color`defend`defendtype`defend #1419=wh
+&color`defend`defendtype`counter #1419=wh
+&color`defend`defendtype`inter #1419=wh
+&color`defend`weapons #1419=ch
+
+&color`buff`message #1419=[u(color`message`base)]
+&color`buff`name #1419=ch
+&color`buff`skill #1419=ch
+&color`buff`stat #1419=ch
+&color`buff`clear #1419=rh
+&color`debuff`clear #1419=gh
+
+&color`damage`koed #1419=rh
+&color`damage`fastjettison #1419=rh
+
+&color`ammo`message #1419=[u(color`message`base)]
+&color`ammo`name #1419=ch
+&color`ammo`weapons #1419=ch

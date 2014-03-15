@@ -1,0 +1,170 @@
+Name: Combat Testing
+Programmer: Vincent Cross (Astrus)
+Date: August 2013
+
+Purpose:
+
+Simply outlines the testing done on the combat system.
+
+
+****Tests****
+
+----Normal Attacks----
+
++vreset
++reset
+@fo *bob=+vreset
+@fo *bob=+reset
+@fo *bob=+attack Astrus=H:1
+
+Evade Fail: Yes
+Evade Fail Message: Yes
+Evade Succeed: Yes
+Evade Succeed Message: Yes
+
+Defend Fail: Yes
+Defend Fail Message: Yes
+Defend Succeed: Yes
+Defend Succeed Message: Yes
+
+Intercept Fail: Yes
+Intercept Fail Message: Yes
+Intercept Succeed: Yes
+Intercept Succeed Message: Yes
+
+Counter Fail: Yes
+Counter Fail Message: Yes
+Counter Succeed: Yes
+Counter Succeed Message: Yes
+
+H2H: Yes
+Ranged: Yes
+Missile: Yes
+Spiritia: Yes
+
+----Unorthodox----
+
++vreset
++reset
+@fo *bob=+vreset
+@fo *bob=+reset
+@fo *bob=+attack Astrus=U
+
+Unorthodox GSCheck Fail: Yes
+Unorthodox GSCheck Fail Message: Yes
+Unorthodox GSCheck Fail Damage: Yes
+
+Evade Fail: Yes
+Evade Fail Message: Yes
+Evade Succeed: Yes
+Evade Succeed Message: Yes
+
+Defend Fail: Yes
+Defend Fail Message: Yes
+Defend Succeed: Yes
+Defend Succeed Message: Yes
+
+Counter Fail: Yes
+Counter Fail Message: Yes
+Counter Succeed: Yes
+Counter Succeed Message: Yes
+
+----Precision----
+
++vreset
++reset
+@fo *bob=+vreset
+@fo *bob=+reset
+@fo *bob=+attack Astrus=3:P
+
+Evade Fail: Yes
+Evade Fail Message: Yes
+Evade Succeed: Yes
+Evade Succeed Message: Yes
+
+Defend Fail: Yes
+Defend Fail Message: Yes
+Defend Succeed: Yes
+Defend Succeed Message: Yes
+
+Intercept Fail: Yes
+Intercept Fail Message: Yes
+Intercept Succeed: Yes
+Intercept Succeed Message: Yes
+
+Counter Fail: Yes
+Counter Fail Message: Yes
+Counter Succeed: Yes
+Counter Succeed Message: Yes
+
+----Dramatic----
+
++vreset
++reset
+@fo *bob=+vreset
+@fo *bob=+reset
+@fo *bob=+attack Astrus=1 2 3
+
+Evade Fail: Yes
+Evade Fail Message: Yes
+Evade Succeed: Yes
+Evade Succeed Message: Yes
+
+Defend Fail: Yes
+Defend Fail Message: Yes
+Defend Succeed: Yes
+Defend Succeed Message: Yes
+
+Intercept Fail: Yes
+Intercept Fail Message: Yes
+Intercept Succeed: Yes
+Intercept Succeed Message: Yes
+
+Counter Fail: Yes
+Counter Fail Message: Yes
+Counter Succeed: Yes
+Counter Succeed Message: Yes
+
+----AOE----
+
++vreset
++reset
+@fo *bob=+vreset
+@fo *bob=+reset
+@fo *bob=+attack/aoe Astrus Astrus=3:2
+
+Evade Fail: Yes
+Evade Fail Message: Yes
+Evade Succeed: Yes
+Evade Succeed Message: Yes
+
+Defend Fail: Yes
+Defend Fail Message: Yes
+Defend Succeed: Yes
+Defend Succeed Message: Yes
+
+Intercept Fail: Yes
+Intercept Fail Message: Yes
+Intercept Succeed: Yes
+Intercept Succeed Message: Yes
+
+Counter Fail: Yes
+Counter Fail Message: Yes
+Counter Succeed: Yes
+Counter Succeed Message: Yes
+
+----Overall----
+
+Armor Degredation: Yes
+
+Defwin: Yes
+Defcs: Yes
+Defsupwin: Yes
+Defcf: Yes
+Atkwin: Yes
+Atkcs: Yes
+Atksupwin: Yes
+Atkcf: Yes
+Dualcs: Yes
+Dualcf: Yes
+Draw: Yes

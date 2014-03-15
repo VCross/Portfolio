@@ -1,0 +1,103 @@
+How do I lock the commands on an object to only things inside it?
+    &location <object>=%L
+    @lock/use <object>=location/<object's dbref>
+    
+    How this works: %L is a substitution that evaluates to the location
+    of %#. So, when the use lock is checked, the location attribute on
+    <object> is evaluated, returning the location of %# (The object
+    trying to pass the use lock). If that matches the second part of the
+    eval-lock, %# is in the object, and it passes the lock. Otherwise, it
+    fails.
+
+&yz`9 atvf=#679 'pilot stat'
+
+
+@desc vfp=[u(desc`[v(yz`5)])]
+@desc #809=[u(exterior)]
+
+&desc_cmd #809=$+vdesc *:think [setq(a,[after([escape(%0)],\\)])][if([or([match(%#,[get(me/yz`9)])],[orflags(%#,Wr)])],[set(me,exterior:%qa)][pemit(%#,[ansi(ch,You have changed the vehicle's description.)])],[pemit(%#,Error, you are not the primary pilot of this vehicle.)])]
+
+&desc_cmd vfp=$+vdesc ?=*:think [setq(a,[after([escape(%1)],\\)])][if([or([match(%#,[get(me/yz`9)])],[orflags(%#,Wr)])],[if([match(F G B,%0)],[set(me,desc`%0:%qa)][pemit(%#,[ansi(ch,You have changed the vehicle's description for mode %0.)])],[pemit(%#,Error, valid modes are [ansi(ch,F G B)].)])],[pemit(%#,Error, you are not the primary pilot of this vehicle.)])]
+
+
+----------------------------
+
+&vlook_cmd vp=$+look *:look %0
+
+----------------------------
+
+&vscan_cmd vp=$+vscan *:think [setq(a,[after([escape(%0)],\\)])][setq(n,[iter([lcon([loc(me)])],[if([hastype(##,thing)],[if([strmatch([name(##)],*%qa*)],##%b)])],,)])][switch([words(%qn)],0,[pemit(%#,Error, no such vehicle can be seen.)],1,[if([get([first(%qn)]/vehicle)],[pemit(%#,[get_eval([first(%qn)]/vsheet`run)])],[pemit(%#,Error, that is not a vehicle.)])],[pemit(%#,Error, multiple objects with that name found.)])]
+
+----------------------------
+
+&resetallow_cmd vp=$+resetallow:think [set(me,lock.list:[v(yz`9)])][null([lock(me/use,location.lock/[num(me)] & [v(yz`9)]|location.lock/[num(me)] & isstaff/1)])][pemit(%#,Only [name([v(yz`9)])] is now allowed to pilot this vehicle.)]
+
+&allow_cmd vp=$+allow *:think [if([or([match(%#,[get(me/yz`9)])],[orflags(%#,Wr)])],[switch([setq(a,[after([escape(%0)],\\)])][setr(1,[num(*%qa)])],#-1,[pemit(me,Error, no such player can be found to allow.)],[u(allow`check`1)])],[pemit(%#,Error, you are not the primary pilot of this vehicle.)])]
+
+&allow`check`1 vp=[if([hastype(%q1,player)],[u(allow`check`2)],[pemit(%#,Error, no such player can be found.)])]
+
+&allow`check`2 vp=[switch([strmatch([iter([v(lock.list)],[match(##,%q1)])],*1*)],0,[u(allow`run)],[pemit(%#,Error, that player is already allowed to use this vehicle.)])]
+
+&allow`run vp=[null([lock(me/use,[lock(me/use)]|location.lock/[num(me)] & %q1)][pemit(%#,[name(%q1)] is now allowed to pilot this machine.)][set(me,lock.list:[v(lock.list)] %q1)]
+
+
+----------------------------
+
+&transfer_cmd vp=$+transfer *:think [if([or([match(%#,[get(me/yz`9)])],[orflags(%#,Wr)])],[switch([setr(a,[after([escape(%0)],\\)])][setr(1,[num(*%qa)])],#-1,[pemit(%#,Error, no such player can be found.)],[u(transfer`check`1)])],[pemit(%#,Error, you are not the primary pilot of this vehicle.)])]
+
+&transfer`check`1 vp=[if([hastype(%q1,player)],[u(transfer`check`2)],[pemit(%#,Error, no such player can be found.)])]
+
+&transfer`check`2 vp=[if([match(%q1,[v(yz`9)])],[pemit(%#,Error, that player is already the primary pilot of this vehicle.)],[u(transfer`run)])]
+
+&transfer`run vp=[set(#829,reg`[v(yz`9)]:[remove([get(#829/reg`[v(yz`9)])],[num(me)])])][if([hasattrval(#829,reg`%q1)],[set(#829,reg`%q1:[insert([get(#829/reg`%q1)],-1,[num(me)])])],[set(#829,reg`%q1:[num(me)])])][set(me,yz`9:%q1)][emit(Primary Pilot of [name(me)] has been transfered to [name(%q1)]. Name changed.)][name(me,[name(%q1)]'s [v(yz`10)] ([after([num(me)],#)]))][u(transfer`lock)]
+
+&transfer`lock vp=[null([lock(me/use,LOCATION.LOCK/[num(me)] & %q1 |location.lock/[num(me)] &[isstaff/1])])][set(me,lock.list:[v(yz`9)])][null([lock(me,%q1)])]
+
+------------------------------
+
+On carrier object:
+
+&iscarrier obj=1
+&carrier`hangar obj=dbref of room representing capship hangar
+
+On a hangar room:
+
+&carrier`exit here=[loc([v(carrier`obj)])]
+&carrier`obj here=<capship dbref>
+
+&vdock_cmd vp=$+dock *:think [setq(a,[after([escape(%0)],\\)])][switch([words([matchall([iter([lcon(here)],[strmatch([name(##)],*%qa*)])],1)])],1,[setq(c,[num(%qa)])][switch([get(%qc/carrier)],1,[emit([name(me)] docks with [name(%qc)].)][tel(me,[get(%qc/carrier`hangar)])][emit([name(me)] has just docked in [name(%qc)]'s hangar.)],[pemit(%#,Error, that is not something you can dock with.)])],0,[pemit(%#,Error, no such object is visable.)],[pemit(%#,Error, multiple objects with that name.)])]
+
+&vlaunch_cmd vp=$+launch:think [setq(n,[name([get(here/carrier`obj)])])][setq(c,[loc(me)])][switch([words([setr(t,[eval(here,carrier`exit)])])],1,[emit([name(me)] launches from the ship.)][tel(me,%qt)][emit([name(me)] has just launched from %qn's hangar.)],[pemit(%#,Error, this is not a hangar to launch from.)])]
+
+
+_______________________________
+
+@asuccess #734=think [attrib_set(me/link.active)]
+
+&vmove_cmd #734=$^\+fly (.+)|^\+move (.+)$:go [switch([words(%1)],0,%2,%1)];think [if([hasattrval(me,link.active)],[attrib_set(me/link.active)])]
+
+&vmode_cmd #595=$+mode *:think [setq(1,%0)][if([match(B F G,%0)],[u(vmode`start)],[pemit(%#,Error, not a valid mode. Please choose between [ansi(ch,B)] - Battroid, [ansi(ch,F)] - Fighter, [ansi(ch,G)] - GERWALK.)])]
+
+&vmode`start atvf=[if([match([v(yz`5)],%q1)],[pemit(%#,Error, you're already in that mode.)],[u(vmode`switch)])]
+
+&vmode`switch atvf=[switch(%q1,B,[u(vmode`switch`b)],G,[u(vmode`switch`g)],F,[u(vmode`switch`f)])]
+
+
+--------------------------------
+
+think [lsearch(all,eval,\[get\(##/vehicle\)\])]
+think [setq(1,g)][iter(<list>,[u(%i0/vmode`start)])]
+
+&vmode`switch`b #595=[switch([v(yz`5)],G,[set(me,yz`5:B)][set(me,xy`a`c:[add([v(xy`a`c)],3)])][set(me,xy`b`c:[add([v(xy`b`c)],3)])][set(me,xy`c`c:[sub([v(xy`c`c)],3)])][switch(%0,q,,[emit([ansi(rh,[name(me)] has switched to [ansi(yh,Battroid)] mode.)])])],F,[set(me,yz`5:B)][set(me,xy`b`c:[add([v(xy`b`c)],6)])][set(me,xy`a`c:[add([v(xy`a`c)],6)])][set(me,xy`c`c:[sub([v(xy`c`c)],6)])][switch(%0,q,,[emit([ansi(rh,[name(me)] has switched to [ansi(yh,Battroid)] mode.)])])])]
+
+&vmode`switch`g #595=[switch([v(yz`5)],B,[set(me,yz`5:G)][set(me,xy`b`c:[sub([v(xy`b`c)],3)])][set(me,xy`c`c:[add([v(xy`c`c)],3)])][set(me,xy`a`c:[sub([v(xy`a`c)],3)])][switch(%0,q,,[emit([ansi(rh,[name(me)] has switched to [ansi(yh,GERWALK)] mode.)])])],F,[set(me,yz`5:G)][set(me,xy`b`c:[add([v(xy`b`c)],3)])][set(me,xy`a`c:[add([v(xy`a`c)],3)])][set(me,xy`c`c:[sub([v(xy`c`c)],3)])][switch(%0,q,,[emit([ansi(rh,[name(me)] has switched to [ansi(yh,GERWALK)] mode.)])])])]
+
+
+&vmode`switch`f #595=[switch([v(yz`5)],G,[set(me,yz`5:F)][set(me,xy`b`c:[sub([v(xy`b`c)],3)])][set(me,xy`c`c:[add([v(xy`c`c)],3)])][set(me,xy`a`c:[sub([v(xy`a`c)],3)])][switch(%0,q,,[emit([ansi(rh,[name(me)] has switched to [ansi(yh,Fighter)] mode.)])])],B,[set(me,yz`5:F)][set(me,xy`b`c:[sub([v(xy`b`c)],6)])][set(me,xy`c`c:[add([v(xy`c`c)],6)])][set(me,xy`a`c:[sub([v(xy`a`c)],6)])][switch(%0,q,,[emit([ansi(rh,[name(me)] has switched to [ansi(yh,Fighter)] mode.)])])])]
+
+
+------------------------------vsummon
+
+&vsummon_cmd #752=$+vsummon *:think [setq(a,[after([escape(%0)],\\)])][if([and([hasattrval(#%qa,vehicle)],[match([get(#%qa/yz`9)],%#)])],[if([match([loc(%#)],#%qa)],[pemit(%#,Error, you cannot summon a vehicle when you are standing inside it.)],[tel(#%qa,[loc(%#)])][pemit(%#,[ansi(ch,You have summoned [ansi(wh,[name(#%qa)])] to your location.)])])],[pemit(%#,Error, that object is not a vehicle you own.)])]
+
+

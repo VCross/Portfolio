@@ -1,0 +1,320 @@
+Name: Buff System
+Programmer: Vincent Cross (Astrus)
+Date: June 2013
+
+Purpose:
+
+This file contains the code related to buffing and debuffing players through the use of Spiritia and its associated stats/skills/vstats.
+
+There are two types of buffs/debuffs. The first is a buff/debuff that uses a character's Spirit and a Performance Skill (Musical Instruments, Singing, or Dancing). The second is a buff/debuff that uses a character's Spirit stat, Enhance skill and their vehicle's Spiritia Amp. stat.
+
+The command for the buff/debuff will be:
+
++buff <player>
++buff <player>=<performance skill>
++debuff <player>
++debuff <player>=<performance skill>
+
+The first version of each command is used to buff/debuff someone with their vehicle's Spiritia Amp. The second version is for the Performance skill. The process for the commands is:
+
+1a) If buff, roll a Normal difficulty gscheck of the chosen performance skill/Spiritia Amp. stat
+1b) If debuff, do a compare between the caller's performance skill/Spiritia Amp. stat and the target's Spirit/Speed vstat.
+2) Roll a 1d6/2d6 to determine stat/stats to apply to:
+2.1) Strength
+2.2) Dexterity
+2.3) Endurance
+2.4) Intelligence
+2.5) Spirit
+2.6) Luck (all)
+3) Calculate the amount to buff/debuff
+3a) For a performance skill buff/debuff: (Spirit + <performance skill>) * 0.25
+3b) For a Amp. buff/debuff: [(Spirit + Enhance) * 0.25] + (Spiritia Amp. * 0.1)
+4) Apply buff/debuff.
+
+The above is simple. The difficulty will be handling the duration of the buff. It's been decided to use a 'buffer' system to allow players to make multiple +attacks and +defends in groups that only count towards one tick of the buff's duration. This buffer will be a time limit, in which the player has to make their +attacks and +defends so that they count as one. Initial implementation will have the buffer be three minutes. Duration of a buff will be 3 ticks, or 4 with a critical success.
+
+Since the design of the combat system leans heavily towards +defend, all of the duration stuff will happen when a +defend is made:
+
+1) First the code will check if the attacker is buffed. If he isn't, skip to 3). If he is, continue on.
+2) Next, the code will check if there is a buffer for the attacker
+	a) If there is a buffer, it will check if the buffer has expired
+		Y.1) If it has expired, subtract 1 tick from the duration.
+		Y.2) Check if the duration now equals 0.
+			Y) If it does equal 0, remove the buff from the attacker.
+			N) Still a buff left, start a new buffer at the time of the +attack this +defend is reponding to.
+		N.1) If it has not expired, do nothing.
+	b) If there is no buffer, it will create a buffer with the time of the +attack this +defend is reponding to.
+
+3) Now the code will check if the defender is buffed. If he isn't, end the code. If he is, the above process repeats except this time for the defender.
+
+Since this will also have to be used during +check, +compare and +gscheck, i'm thinking of making this as generic as possible. A function that when passed the player dbref, does what is necessary. This function is then placed before the relevant main run of the +defend/+check/+compare/+gscheck code. Either the buff will remain and so be used in the math, or the function will remove the buff.
+
+
+++++Code++++
+
+#1418 = Combat Commands Object
+#1419 = Combat Code Object
+
+----cmd_+buff / cmd_+debuff----
+
+The main commands of the buff/debuff system. The two processes are similar enough that they can be weaved into one, making appropriate checks to see if it's a buff/debuff where necessary.
+
+&cmd_+buff #1418=$+buff *:think [setq(type,buff)][u(#1419/buff`setup,%0)];think [u(#1419/func`cango,#1419/buff`run)];think [u(#1419/func`cango,#1419/buff`result)];think [u(#1419/buff`debug)];think [if([match(%q<targetDbref>,%#)],,[u(#1419/func`cango,#1419/duration`run,buff,%#)])]
+
+&cmd_+debuff #1418=$+debuff *:think [setq(type,debuff)][u(#1419/buff`setup,%0)];think [u(#1419/func`cango,#1419/buff`run)];think [u(#1419/func`cango,#1419/buff`result)];think [u(#1419/buff`debug)];think [if([match(%q<targetDbref>,%#)],,[u(#1419/func`cango,#1419/duration`run,debuff,%#,%q<targetDbref>)])]
+
+&cmd_+buff2 #1418=$+buff/aoe *:think [setq(type,buff,aoe,1)][u(#1419/buff`setup,%0)];think [u(#1419/func`cango,#1419/buff`run)];think [u(#1419/func`cango,#1419/buff`result)];think [u(#1419/buff`debug)];think [if([match(%q<targetDbref>,%#)],,[u(#1419/func`cango,#1419/duration`run,buff,%#)])]
+
+&cmd_+debuff2 #1418=$+debuff/aoe *:think [setq(type,debuff,aoe,1)][u(#1419/buff`setup,%0)];think [u(#1419/func`cango,#1419/buff`run)];think [u(#1419/func`cango,#1419/buff`result)];think [u(#1419/buff`debug)];think [if([match(%q<targetDbref>,%#)],,[u(#1419/func`cango,#1419/duration`run,debuff,%#,%q<targetDbref>)])]
+
+----buff`setup----
+
+Handles the initial setup of the buff system, such as checks and validating information.
+
+Registers:
+	type - buff or debuff
+	targetName - The name of the target given by the player
+	perfSkill - The selected performance skill.
+	perfXY - The xy value of the validated performance skill.
+	playerlist - The list of target names given in the aoe version of the command.
+	targetcount - The number of targets in the aoe version of the command.
+	
+
+&buff`setup #1419=[setq(error,0)][u(buff`regmatch,%0)][u(buff`checkcaller)][u(func`cango,[if(%q<aoe>,buff`checktarget`aoe,buff`checktarget)],%q<targetName>)][if(%q<perfskill>,[u(func`cango,buff`checkskill)],[u(func`cango,buff`checkskill`haveenhance)])]
+
+
+&buff`regmatch #1419=[if([u(buff`regmatch`pattern,%0)],,[setq(targetName,%0)])]
+
+&buff`regmatch`pattern #1419=[regmatch(%0,^(.+)=(.+)$,1:targetName 2:perfSkill)]
+
+
+&buff`checkcaller #1419=[u(buff`checkcaller`isapproved,%#)][u(func`cango,buff`checkcaller`invehicle)][u(func`cango,attack`check`koed,%#)]
+
+&buff`checkcaller`invehicle #1419=[if(%q<perfskill>,,[if([get([loc(%#)]/vehicle)],[u(buff`checkcaller`hasamp)][u(func`cango,buff`checkcaller`aoe)],[setq(error,34)])])]
+
+&buff`checkcaller`hasamp #1419=[if([gt([get([loc(%#)]/xy`g`c)],0)],,[setq(error,37)])]
+
+&buff`checkcaller`aoe #1419=[if(%q<aoe>,[if([get([loc(%#)]/carrier)],,[setq(error,38)])])]
+
+&buff`checkcaller`isapproved #1419=[if([hasflag(%0,approved)],,[setq(error,14)])]
+
+
+&buff`checktarget #1419=[u(buff`checktarget`isplayer,%0)][u(func`cango,buff`checktarget`isapproved,%q<targetDbref>)][u(func`cango,buff`checktarget`isonline,%q<targetDbref>)][u(func`cango,buff`checktarget`inroom,%q<targetDbref>)][u(func`cango,buff`checktarget`hasbuff,%q<targetDbref>)][u(func`cango,attack`check`koed,%q<targetDbref>)]
+
+&buff`checktarget`aoe #1419=[setq(playerlist,[trim(%q<targetName>)])][unsetq(targetName)][u(buff`checktarget`aoe`player,1)][if([strlen(%q<playerlist>)],[setq(targetcount,2)][u(buff`checktarget`aoe`player,2)],[setq(error,23)])][if([strlen(%q<playerlist>)],[setq(targetcount,3)][u(buff`checktarget`aoe`player,3)])][if([strlen(%q<playerlist>)],[setq(targetcount,4)][u(buff`checktarget`aoe`player,4)]
+
+&buff`checktarget`aoe`player #1419=[u(buff`checktarget`aoe`setplayer)][u(buff`checktarget,%q<player>)][setq(targetlist,[insert(%q<targetlist>,-1,[num(*%q<player>)])][unsetq(player)]
+
+&buff`checktarget`aoe`setplayer #1419=[if([match(",[left(%q<playerlist>,1)])],[setq(endpos,[pos(",[mid(%q<playerlist>,1,[strlen(%q<playerlist>)])])])][setq(player,[mid(%q<playerlist>,1,[sub(%q<endpos>,1)])])][setq(playerlist,[trim([mid(%q<playerlist>,[add(%q<endpos>,1)],[strlen(%q<playerlist>)])])])],[setq(player,[first(%q<playerlist>)])][setq(playerlist,[ldelete(%q<playerlist>,1)])])]
+
+&buff`checktarget`isplayer #1419=[if([hastype(*%0,player)],[setq(targetDbref,[num(*%0)])][unsetq(targetName)],[setq(error,9)])]
+
+&buff`checktarget`isapproved #1419=[u(buff`checkcaller`isapproved,%0)]
+
+&buff`checktarget`isonline #1419=[if([hasflag(%0,connected)],,[setq(error,10)])]
+
+&buff`checktarget`inroom #1419=[if([inroom(%#,%0)],,[setq(error,11)])]
+
+&buff`checktarget`hasbuff #1419=[if([hasattrval(%0,%q<type>)],[setq(error,29)])]
+
+
+&buff`checkskill #1419=[setq(perfXY,[last([u(check`findselection,%q<perfSkill>)])])][unsetq(perfSkill)][u(func`cango,buff`checkskill`valid)][u(func`cango,buff`checkskill`haveit)]
+
+&buff`checkskill`valid #1419=[if([match(xy`533 xy`534 xy`535,%q<perfxy>)],,[setq(error,28)])]
+
+&buff`checkskill`haveit #1419=[if([get(%#/%q<perfxy>)],,[setq(error,30)])]
+
+&buff`checkskill`haveenhance #1419=[if([get(%#/xy`542)],,[setq(error,31)])]
+
+----buff`run----
+
+The main run of the process.
+
+Registers:
+	type - buff or debuff
+	targetDbref - The dbref of the target player
+	perfXY - The xy value of the validated performance skill.
+	targetlist - List of dbrefs of the aoe targets
+
+&buff`run #1419=[if(%q<aoe>,[u(buff`run`aoe)],[u(buff`run`runcheck`%q<type>)][switch([first(%q<%q<type>result>,|)],success,[u(func`cango,buff`run2)])])]
+
+&buff`run2 #1419=[u(buff`run`diceroll)][u(buff`run`calculate)][if(%q<aoe>,[u(buff`run3`%q<type>)],[u(buff`run`apply)])]
+
+&buff`run`aoe #1419=[switch(%q<type>,buff,[u(buff`run`runcheck`buff)][switch([first(%q<%q<type>result>,|)],success,[u(func`cango,buff`run2)])],debuff,[iter(%q<targetlist>,[u(buff`run`runcheck`debuff,[itext(0)])][setq(debuffresult[inum(0)],%q<%q<type>result>)])][u(func`cango,buff`run2)])]
+
+&buff`run3`buff #1419=[iter(%q<targetlist>,[setq(targetDbref,[itext(0)])][u(buff`run`apply)])]
+
+&buff`run3`debuff #1419=[iter(%q<targetlist>,[setq(debuffresult[inum(0)],%q<debuffresult[inum(0)]>|[elements(%q<debuffresult>,6 7,|,|)])][setq(debuffresult,%q<debuffresult[inum(0)]>,targetDbref,[itext(0)])][switch([first(%q<debuffresult[inum(0)]>,|)],success,[u(buff`run`apply)])])]
+
+
+----buff`run`runcheck----
+
+The first step of the buff/debuff process is to check to see if the player is even able to 'hit'. A reminder of the process:
+
+1a) If buff, roll a Normal difficulty gscheck of the chosen performance skill/Spiritia Amp. stat
+1b) If debuff, do a compare between the caller's performance skill/Spiritia Amp. stat and the target's Spirit/Speed vstat.
+
+In:
+	%0 - If aoe, the dbref to check.
+
+Registers:
+	targetDbref - The dbref of the target player
+
+	checkresult - The result of the check in format <type> <xy>|<dbref>|<result>.
+	buffresult - The result of the buff in format: <success/fail>|<roll>|<result>
+	roll - The base roll of the buffer from the check
+	
+	callingResult - The result of the compare for the buffer
+	callingRoll - The base roll of the caller from the compare
+	targetResult - The result of the compare for the target
+	targetRoll - The base roll of the target from the compare
+	debuffresult - The result of the debuff in format: <success/fail>|<callingRoll>|<callingResult>|<targetRoll>|<targetResult>
+
+&buff`run`runcheck`buff #1419=[setq(checkresult,[u(check,[if(%q<perfxy>,[after(%q<perfxy>,`)],542)],%#)])][u(func`cango,buff`run`runcheck`buff`compare)]
+
+&buff`run`runcheck`buff`compare #1419=[if([gte([last(%q<checkresult>,|)],[u(global`gscheck`n`[first(%q<checkresult>)])])],[setq(buffresult,success|%q<roll>|[last(%q<checkresult>,|)])],[setq(buffresult,fail|%q<roll>|[last(%q<checkresult>,|)])])][unsetq(checkresult)]
+
+
+&buff`run`runcheck`debuff #1419=[if(%q<aoe>,[setq(targetDbref,%0)])][setq(callingSel,[if(%q<perfxy>,[after(%q<perfxy>,`)],542)],targetSel,Spirit)][u(compare`run2)][unsetq(callingSel targetSel)][u(func`cango,buff`run`runcheck`debuff`crits)][setq(debuffresult,%q<debuffresult>|%q<callingRoll>|[last(%q<callingResult>,|)]|%q<targetRoll>|[last(%q<targetResult>,|)])][unsetq(callingResult targetResult callingRoll targetRoll)]
+
+&buff`run`runcheck`debuff`crits #1419=[switch(%q<callingRoll>|%q<targetRoll>,1|1,[setq(debuffresult,fail)],[u(global`check`dice`sides)]|[u(global`check`dice`sides)],[setq(debuffresult,fail)],1|*,[setq(debuffresult,fail)],*|1,[setq(debuffresult,success)],[u(global`check`dice`sides)]|*,[setq(debuffresult,success)],*|[u(global`check`dice`sides)],[setq(debuffresult,fail)],[u(buff`run`runcheck`debuff`compare)])]
+
+&buff`run`runcheck`debuff`compare #1419=[if([gt([last(%q<callingResult>,|)],[last(%q<targetResult>,|)])],[setq(debuffresult,success)],[if([lte([last(%q<callingResult>,|)],[last(%q<targetResult>,|)])],[setq(debuffresult,fail)])])]
+
+
+----buff`run`diceroll----
+
+Simply rolls some dice to determine which stat/s to buff/debuff. Reminder of the process:
+
+2) Roll a 1d6/2d6 to determine stat/stats to apply to:
+2.1) Strength
+2.2) Dexterity
+2.3) Endurance
+2.4) Intelligence
+2.5) Spirit
+2.6) Luck (all)
+
+The result will be a space separated list of xy values which will later be iterated through when applying the buff/debuff.
+
+Registers:
+	buffresult - Updates the buffresult to format: <success/fail>|<roll>|<result>|<stat/s>
+	debuffresult - Updates the debuffresult to format: <success/fail>|<callingRoll>|<callingResult>|<targetRoll>|<targetResult>|<stat/s>
+
+&buff`run`diceroll #1419=[setq(dice,[die([if(%q<perfxy>,[u(global`buff`die`perf)],[u(global`buff`die`amp)])],[if(%q<perfxy>,[u(global`buff`sides`perf)],[u(global`buff`sides`amp)])],1)])][u(buff`run`diceroll`setresult)]
+
+&buff`run`diceroll`setresult #1419=[setq(%q<type>result,%q<%q<type>result>|[switch([first(%q<dice>)],6,xy`1 xy`2 xy`3 xy`4 xy`5,xy`[first(%q<dice>)])] [if([not([words(%q<perfxy>)])],[switch([last(%q<dice>)],6,xy`1 xy`2 xy`3 xy`4 xy`5,xy`[last(%q<dice>)])])])][unsetq(dice)]
+
+
+----buff`run`calculate----
+
+Calculates the value of the buff/debuff to apply to the target based upon the stats/skills/vstats of the buffer/debuffer. Reminder of the process:
+
+3) Calculate the amount to buff/debuff
+3a) For a performance skill buff/debuff: (Spirit + <performance skill>) * 0.25
+3b) For a Amp. buff/debuff: [(Spirit + Enhance) * 0.25] + (Spiritia Amp. * 0.1)
+
+Registers:
+	buffresult - Updates the buffresult to format: <success/fail>|<roll>|<result>|<stat/s>|<amount>
+	debuffresult - Updates the debuffresult to format: <success/fail>|<callingRoll>|<callingResult>|<targetRoll>|<targetResult>|<stat/s>|<amount>
+	
+&buff`run`calculate #1419=[setq(z,[mul([add([get(%#/xy`5`c)],[get(%#/[if(%q<perfxy>,%q<perfxy>,xy`542)])])],[u(global`buff`calc`statskillmul)])])][if(%q<perfxy>,,[setq(z,[add(%q<z>,[mul([get([loc(%#)]/xy`g`c)],[u(global`buff`calc`ampmul)])])])])][u(buff`run`calculate`supercrit)][setq(%q<type>result,%q<%q<type>result>|%q<z>)][unsetq(z)]
+
+&buff`run`calculate`supercrit #1419=[if(%q<debuffresult>,[if([strmatch([elements(%q<debuffresult>,2 4,|,|)],[u(global`check`dice`sides)]|[u(global`check`dice`num)])],[setq(z,[add(%q<z>,[u(global`buff`calc`supercritbonus)])])])])]
+
+
+----buff`run`apply----
+
+This code is responsible for applying the buff/debuff to the target. This by itself is fairly simple. The real issue is handling the duration of the buff. But that will be handled in a separate section.
+
+Registers:
+	targetDbref - The dbref of the person being buffed/debuffed
+	buffresult - The result of the buff in format: <success/fail>|<roll>|<result>|<stat/s>|<amount>
+	debuffresult - The result of the debuff in format: <success/fail>|<callingRoll>|<callingResult>|<targetRoll>|<targetResult>|<stat/s>|<amount>
+	duration - The duration of the buff/debuff
+	
+&buff`run`apply #1419=[switch(%q<type>,buff,[if([hasattrval(%q<targetDbref>,debuff)],[u(buff`run`apply`opposite,debuff,buff)],[u(buff`run`apply`new,[u(buff`run`apply`duration`buff)])])],debuff,[if([hasattrval(%q<targetDbref>,buff)],[u(buff`run`apply`opposite,buff,debuff)],[u(buff`run`apply`new,[u(buff`run`apply`duration`debuff)])])])]
+
+&buff`run`apply`opposite #1419=[if([strmatch([setr(currentduration,[elements([get(%q<targetDbref>/%0)],3,|)])],[setr(duration,[u(buff`run`apply`duration`%1)])])],[u(buff`func`clear,%0,%q<targetDbref>)][if(%q<aoe>,,[setq(%1result,clear%0)])],[if([gt(%q<duration>,%q<currentduration>)],[u(buff`func`clear,%0,%q<targetDbref>)][u(buff`run`apply`new,[sub(%q<duration>,%q<currentduration>)])],[attrib_set(%q<targetdbref>/%0,[replace([get(%q<targetdbref>/%0)],3,[sub(%q<currentduration>,%q<duration>)],|)])][if(%q<aoe>,,[setq(%1result,reduce%0)])])])]
+
+&buff`run`apply`duration`buff #1419=[switch([elements(%q<buffresult>,2,|)],[u(global`check`dice`sides)],4,3)]
+
+&buff`run`apply`duration`debuff #1419=[if([strmatch([elements(%q<debuffresult>,2 4,|,|)],[u(global`check`dice`sides)]|*)],4,3)]
+
+&buff`run`apply`new #1419=[null([iter([switch(%q<type>,buff,[elements(%q<buffresult>,4,|)],debuff,[elements(%q<debuffresult>,6,|)])],[attrib_set(%q<targetDbref>/[itext(0)]`c,[[switch(%q<type>,buff,add,debuff,sub)]([get(%q<targetDbref>/[itext(0)]`c)],[switch(%q<type>,buff,[elements(%q<buffresult>,5,|)],debuff,[elements(%q<debuffresult>,7,|)])])])])])][attrib_set(%q<targetdbref>/%q<type>,[elements(%q<%q<type>result>,[switch(%q<type>,buff,4 5,debuff,6 7)],|,|)]|%0)][setq(%q<type>result,%q<%q<type>result>|%0)]
+
+
+----buff`func`clear----
+
+This inbedded function is used to clear an existing buff from the target player, in preparation of a new buff being added by other code. First the code runs through the existing buff/debuff, reversing the changes made by it. Then it clears the buff/debuff from the player.
+
+In:
+	%0 - Whether it's a buff or debuff
+	%1 - The dbref of the target
+
+&buff`func`clear #1419=[iter([switch(%0,buff,[first([get(%1/buff)],|)],debuff,[first([get(%1/debuff)],|)])],[attrib_set(%1/[itext(0)]`c,[[switch(%0,buff,sub,debuff,add)]([get(%1/[itext(0)]`c)],[elements([get(%1/%0)],2,|)])])])][attrib_set(%1/%0,)][pemit(%1,[ansi([u(color`%0`clear)],You have lost your %0.)])]
+
+
+----buff`result----
+
+The result of the attempted buff/debuff.
+
+Registers:
+	type - buff or debuff
+	targetDbref - The dbref of the target player
+	perfXY - The xy value of the validated performance skill.
+	buffresult - The result of the buff in format: <success/fail>|<roll>|<result>|<stat/s>|<duration>
+	debuffresult - The result of the debuff in format: <success/fail>|<callingRoll>|<callingResult>|<targetRoll>|<targetResult>|<stat/s>|<duration>
+	
+&buff`result #1419=[remit([u(check`result`destination)],[ansi([u(color`buff`message)],[if([and(%q<aoe>,[match(%q<type>,debuff)])],[u(buff`result`debuff`aoe)],[u(buff`result`%q<type>`[first(%q<%q<type>result>,|)])])])])]
+
+&buff`result`general`begin #1419=[ansi([u(color`buff`name)],%N)] attempts to [if(%q<perfxy>,,Amp%b)]%q<type> [if(%q<aoe>,[itemize([ansi(ch,[iter(%q<targetlist>,[name([itext(0)])],,|)])],|)],[ansi([u(color`buff`name)],[name(%q<targetDbref>)])])]
+
+&buff`result`general`skill #1419=[if(%q<perfxy>,%bwith [ansi([u(color`buff`skill)],[get(#80/%q<perfxy>)])])]
+
+&buff`result`buff`fail #1419=[u(buff`result`general`begin)][u(buff`result`general`skill)] but fails to hit.
+
+&buff`result`buff`success #1419=[u(buff`result`general`begin)][u(buff`result`general`skill)] and succeeds[if(%q<aoe>,.,[,] increasing [poss(%q<targetDbref>)] [u(buff`result`effected)].)]
+
+&buff`result`buff`cleardebuff #1419=[u(buff`result`general`begin)][u(buff`result`general`skill)] and succeeds, clearing [poss(%q<targetDbref>)] debuff.
+
+&buff`result`buff`reducedebuff #1419=[u(buff`result`general`begin)][u(buff`result`general`skill)] and succeeds, reducing the duration of [poss(%q<targetDbref>)] debuff.
+
+
+&buff`result`debuff`fail #1419=[u(buff`result`general`begin)][u(buff`result`general`skill)] but fails to hit.
+
+&buff`result`debuff`success #1419=[u(buff`result`general`begin)][u(buff`result`general`skill)] and succeeds[if(%q<aoe>,.,[,] reducing [poss(%q<targetDbref>)] [u(buff`result`effected)].)]
+
+&buff`result`debuff`clearbuff #1419=[u(buff`result`general`begin)][u(buff`result`general`skill)] and succeeds, clearing [poss(%q<targetDbref>)] buff.
+
+&buff`result`debuff`reducebuff #1419=[u(buff`result`general`begin)][u(buff`result`general`skill)] and succeeds, reducing the duration of [poss(%q<targetDbref>)] buff.
+
+&buff`result`debuff`aoe #1419=[u(buff`result`general`begin)][u(buff`result`general`skill)]. [capstr(%s)] [itemize([iter(%q<targetlist>,[switch([first(%q<debuffresult[inum(0)]>,|)],success,succeeds,fail,fails)])])].
+
+&buff`result`effected #1419=[itemize(unique(sort([iter([elements(%q<%q<type>result>,[switch(%q<type>,buff,4,debuff,6)],|)],[ansi(ch,[get(#80/[itext(0)])])])])))]
+
+
+----buff`turn----
+
+This simple command ticks over the duration of the caller's current buff/debuff. 
+
+Registers:
+	type - buff/debuff
+
+&cmd_+turn #1418=$+turn:think [setq(error,0)][if([u(#1419/buff`turn`hasbuff)],,[setq(error,33)])][u(#1419/func`cango,#1419/buff`turn)];think [u(#1419/func`cango,#1419/buff`turn`result)]
+
+&buff`turn`hasbuff #1419=[if([hasattrval(%#,buff)],[setr(type,buff)],[if([hasattrval(%#,debuff)],[setr(type,debuff)])])]
+
+&buff`turn #1419=[if([sub([last([setr(z,[get(%#/%q<type>)])],|)],1)],[u(buff`turn`sub)],[u(buff`func`clear,%q<type>,%#)])]
+
+&buff`turn`sub #1419=[attrib_set(%#/%q<type>,[replace(%q<z>,3,[sub([last(%q<z>,|)],1)],|)])]
+
+&buff`turn`result #1419=[remit([u(check`result`destination)],[ansi([u(color`buff`message)],[ansi([u(color`buff`name)],%N)] expends one turn on %p %q<type>.)])]
+
+----buff`debug----
+
+Displays various debug information about the buff/debuff process.
+
+&buff`debug #1419=[if([get(#1419/debug`buff)],[pemit(%#,[ansi(bh,----Buff/Debuff Debug----)]%r[u(buff`debug`basic)])])]
+
+&buff`debug`basic #1419=type: %q<type>%rtarget: [name(%q<targetDbref>)] (%q<targetDbref>)[if(%q<perfxy>,%rperfxy: %q<perfxy>)]%r[if(%q<buffresult>,buffresult: %q<buffresult>,debuffresult: %q<debuffresult>)]
+

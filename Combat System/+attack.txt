@@ -1,0 +1,306 @@
+Name: +attack
+Programmer: Vincent Cross (Astrus)
+Date: June 2013
+
+Purpose:
+
+The +attack command is the first command used by a player when an attack is made. The command is split up into a number of options, allowing the player to customise their attack within the rules of the combat system. For the first iteration of this system, the +attack command is going to be coded to automate the Aiming System, which is currently done through +checks and +compares. Below is an outline of the various forms this command can take.
+
+Commands:
+
+(Normal) 		+attack <player>=<weapon>:<strength>
+(Hand2Hand)		+attack <player>=H:<strength>
+(Unorthodox)	+attack <player>=U
+(Precision)		+attack <player>=<weapon>:P
+(Dramatic)		+attack <player>=<weapon> <weapon> <weapon>
+(AOE)			+attack/aoe <player1> <player2> <player3> <player4>=<weapon>:<strength>
+
+
+Parameters:
+
+<player> = The target of the attack
+<weapon> = The weapon to use during the attack. At this stage, limited to vehicle weapons
+<strength> = A number, 1 - 3, signifying the strength of the attack
+
+++++Code++++
+
+#1289 = Combat Commands Object
+#1419 = Combat Code Object
+
+----+attack----
+
+This is the base +attack command. It takes everything, which will later be analysed to determine which path to follow. It then directs the code through the various methods to run each path. The paths split into the following:
+
+attack`normal
+attack`h2h
+attack`unorth
+attack`prec
+attack`drama
+attack`aoe
+
+Registers:
+
+	argument - The argument given in the +attack command
+	path - The path that the code is following.
+	patternnum - The current number of the regexp pattern to check
+	
+	playerlist - Used for the AOE attack, takes everything from before the =
+	player1
+	player2
+	player3
+	player4 - The registers for up to four player targets
+	weapon1
+	weapon2
+	weapon3 - The registers for up to three weapons
+	strength - The register for the strength of the attack
+
+&cmd_attack #1418=$+attack *:think [setq(error,0,argument,%0)][setq(path,[u(#1419/attack`findpath)])];think [switch(%q<path>,none,[setq(error,13)],[u(#1419/attack`check)])];think [u(#1419/func`cango,#1419/attack`%q<path>)];[u(#1419/func`cango,#1419/attack`%q<path>`result`calling)][u(#1419/func`cango,#1419/attack`%q<path>`result`target)];think [if([get(#1419/debug`attack)],[u(#1419/attack`debug)])];think [if(%q<unorthfail>,[setq(error,0)][u(#1419/func`cango,#1419/damage`inflict,%q<weapondata>,[mul([elements(%q<weapondata>,5,|)],2)])])]
+
+&cmd_attack/aoe #1418=$+attack/aoe *:think [setq(error,0,argument,%0)][if([u(#1419/attack`findpath`pattern6)],[setq(path,AOE)],[setq(error,19)])];think [u(#1419/func`cango,#1419/attack`%q<path>)];[u(#1419/func`cango,#1419/attack`%q<path>`result`calling)][u(#1419/func`cango,#1419/attack`%q<path>`result`target)];think [if([get(#1419/debug`attack)],[u(#1419/attack`debug)])]
+
+&attack`findpath #1419=[setq(patternnum,1)][switch([u(attack`findpath`regmatch)],1,Normal,2,H2H,3,Unorth,4,Prec,5,Drama,6,AOE,7,none)]
+
+&attack`findpath`regmatch #1419=[if([u(attack`findpath`pattern%q<patternnum>)],%q<patternnum>,[setq(patternnum,[add(%q<patternnum>,1)])][u(attack`findpath`regmatch)])]
+
+&attack`findpath`pattern1 #1419=[regmatch(%q<argument>,^(.+)=(\\d+):(\[123\])$,1:player1 2:weapon1 3:strength)]
+
+&attack`findpath`pattern2 #1419=[regmatch(%q<argument>,^(.+)=(H|h):(\[123\])$,1:player1 3:strength)]
+
+&attack`findpath`pattern3 #1419=[regmatch(%q<argument>,^(.+)=(U|u)$,1:player1)]
+
+&attack`findpath`pattern4 #1419=[regmatch(%q<argument>,^(.+)=(\\d+):(P|p)$,1:player1 2:weapon1)]
+
+&attack`findpath`pattern5 #1419=[regmatch(%q<argument>,^(.+)=(\\d+|H|h) (\\d+|H|h) (\\d+|H|h)$,1:player1 2:weapon1 3:weapon2 4:weapon3)]
+
+&attack`findpath`pattern6 #1419=[regmatch(%q<argument>,^(.+)=(\\d+):(\[123\])$,1:playerlist 2:weapon1 3:strength)]
+
+&attack`findpath`pattern7 #1419=[regmatch(%q<argument>,^(.+))]
+
+
+&attack`check #1419=[u(attack`check`callingplayer)][switch(%q<path>,AOE,[u(attack`aoe`check)],[u(#1419/func`cango,attack`check`targetplayer)])]
+
+
+&attack`check`callingplayer #1419=[u(check`check,%#)][u(func`cango,attack`check`koed,%#)]
+&attack`check`targetplayer #1419=[u(check`check,%q<player1>)][setq(targetDbref,[num(*%q<player1>)])][u(func`cango,attack`check`online)][u(func`cango,attack`check`inroom,%#,%q<targetDbref>)][u(func`cango,attack`check`koed,%q<targetDbref>)]
+
+&attack`check`inroom #1419=[if([inroom(%0,%1)],,[setq(error,11)])]
+
+&attack`check`online #1419=[if([hasflag(%q<targetDbref>,connected)],,[setq(error,10)])]
+
+&attack`check`koed #1419=[if([and([gt([get(%0/xy`7`c)],0)],[gt([get(%0/xy`8`c)],0)])],[if([cand([get([loc(%0)]/vehicle)],[gt([get([loc(%0)]/yz`1`c)],0)])],,[setq(error,[if([match(%0,%#)],40,42)])])],[setq(error,[if([match(%0,%#)],39,41)])])]
+
+----Normal Attack----
+
+Handles the preparation of the normal attack. Information to send:
+
+- Dbref of +attacking player
+- Normal attack type
+- Info of the weapon
+- Strength of the attack
+- Mod info
+
+In following format:
+
+Normal:Dbref:Strength:Mod:Weapon Info
+Normal:%q<targetDbref>:%q<strength>:[u(func`getweapon,%q<weapon>)]
+
+Reminder of queue layout:
+
+#&combatqueue`1360801109 #619=#4
+#&combatqueue`1360801109`type #619=Normal
+#&combatqueue`1360801109`weapons #619=Gunpod
+#&combatqueue`1360801109`selection1 #619=1
+#&combatqueue`1360801109`strength #619=3
+#&combatqueue`1360801109`weapon1 #619=R|Mauler REB-22 Energy Cannons|-3|HP|95|I|I|0|I
+#&combatqueue`1360801109`luck=1
+#&combatqueue`1360801109`vehicle=#926
+
+&attack`normal #1419=[setq(weapondata,[u(func`getweapon,%q<weapon1>)])][switch(%q<path>,Drama,[u(func`cango,attack`drama`weapondatas)],[if([u(ammo`check,%q<weapondata>,%q<strength>)],[u(ammo`mod,%q<weapon1>,%q<weapondata>,%q<strength>,[loc(%#)],-)],[setq(error,35)])][u(func`cango,attack`normal`senddata)])]
+
+&attack`normal`senddata #1419=[setq(queueattrib,[if([hasattrval(%q<targetDbref>,combatqueue`[secs()])],[secs()]-[add([nattr(%q<targetDbref>/combatqueue`[secs()]*)],1)],[secs()])])][attrib_set(%q<targetDbref>/combatqueue`%q<queueattrib>,%#)][u(attack`normal`senddata`sendtype)][u(attack`normal`senddata`sendweapons)][u(attack`normal`senddata`sendstrength)][u(attack`normal`senddata`sendweapon1)][switch(%q<path>,AOE,[u(attack`normal`senddata`aoe)])][u(attack`normal`senddata`luck)][u(attack`normal`senddata`vehicle)][u(attack`normal`senddata`selection)][u(attack`normal`senddata`lock)]
+
+&attack`normal`senddata`sendtype #1419=[attrib_set(%q<targetDbref>/combatqueue`%q<queueattrib>`type,%q<path>)]
+
+&attack`normal`senddata`sendweapons #1419=[attrib_set(%q<targetDbref>/combatqueue`%q<queueattrib>`weapons,[extract(%q<weapondata>,2,1,|)])]
+
+&attack`normal`senddata`sendstrength #1419=[attrib_set(%q<targetDbref>/combatqueue`%q<queueattrib>`strength,%q<strength>)]
+
+&attack`normal`senddata`sendweapon1 #1419=[attrib_set(%q<targetDbref>/combatqueue`%q<queueattrib>`weapon1,%q<weapondata>)]
+
+&attack`normal`senddata`aoe #1419=[attrib_set(%q<targetDbref>/combatqueue`%q<queueattrib>`targets,%q<targetcount>)]
+
+&attack`normal`senddata`luck #1419=[if([get(%#/useluck)],[switch(%q<path>,aoe,[attrib_set(%q<targetDbref>/combatqueue`%q<queueattrib>`luck,1)],unorth,0,prec,0,drama,0,[attrib_set(%q<targetDbref>/combatqueue`%q<queueattrib>`luck,1)][attrib_set(%#/useluck,0)][attrib_set(%#/xy`6`c,[sub([get(%#/xy`6`c)],1)])])])]
+
+&attack`normal`senddata`vehicle #1419=[if([get([loc(%#)]/vehicle)],[attrib_set(%q<targetDbref>/combatqueue`%q<queueattrib>`vehicle,[loc(%#)])])]
+
+&attack`normal`senddata`selection #1419=[attrib_set(%q<targetDbref>/combatqueue`%q<queueattrib>`selection1,%q<weapon1>)]
+
+&attack`normal`senddata`lock #1419=[set(%q<targetDbref>/combatqueue,m)][set(%q<targetDbref>/combatqueue,w)]
+
+&attack`normal`result`calling #1419=[pemit(%#,[ansi(wh,You attack [ansi(ch,[name(%q<targetDbref>)])] with a level [ansi(ch,%q<strength>)] normal attack using [ansi(ch,[extract(%q<weapondata>,2,1,|)])].)])]
+
+&attack`normal`result`target #1419=[pemit(%q<targetDbref>,[ansi(ch,%N)] [ansi(wh,makes a level [ansi(ch,%q<strength>)] normal attack against you using [ansi(ch,[extract(%q<weapondata>,2,1,|)])].)])]
+
+
+----H2H Attack----
+
+Basically exactly like the normal attack, except using the H weapon.
+
+&attack`h2h #1419=[setq(weapon1,H)][u(attack`normal)]
+
+&attack`h2h`result`calling #1419=[pemit(%#,[ansi(wh,You attack [ansi(ch,[name(%q<targetDbref>)])] with a level [ansi(ch,%q<strength>)] Hand to Hand attack.)])]
+
+&attack`h2h`result`target #1419=[pemit(%q<targetDbref>,[ansi(ch,%N)] [ansi(wh,makes a level [ansi(ch,%q<strength>)] Hand to Hand attack against you.)])]
+
+
+----Prec Attack----
+
+Quite a fair bit like the normal attack. Has some special modifies that are taken into account during the main run. For the +attack, looks a lot like a normal attack. Except has some specific requirements.
+
+&attack`prec #1419=[u(attack`prec`check)][u(func`cango,attack`prec`run)]
+
+&attack`prec`run #1419=[setq(strength,3)][u(attack`normal)][u(attack`prec`removeluck)]
+
+&attack`prec`check #1419=[u(attack`prec`check`luckavailable)][u(func`cango,attack`prec`check`iscapship)]
+&attack`prec`check`luckavailable #1419=[if([gte([get(%#/xy`6`c)],1)],,[setq(error,18)])]
+&attack`prec`check`iscapship #1419=[if([get([loc(%q<targetDbref>)]/carrier)],,[setq(error,17)])]
+
+&attack`prec`result`calling #1419=[pemit(%#,[ansi(wh,You attack [ansi(ch,[name(%q<targetDbref>)])] with a level [ansi(ch,%q<strength>)] [ansi(yh,Precision)] attack using [ansi(ch,[extract(%q<weapondata>,2,1,|)])].)])]
+
+&attack`prec`result`target #1419=[pemit(%q<targetDbref>,[ansi(ch,%N)] [ansi(wh,makes a level [ansi(ch,%q<strength>)] [ansi(yh,Precision)] attack against you using [ansi(ch,[extract(%q<weapondata>,2,1,|)])].)])]
+
+&attack`prec`removeluck #1419=[attrib_set(%#/xy`6`c,[sub([get(%#/xy`6`c)],1)])]
+
+
+----Unorth Attack----
+
+Before Unorthodox attacks are sent to the +defender, the +attacker has to make a Normal gscheck (against H2H). If they succeed, then the unorthodox attack proceeds much like a normal attack. If they fail, they receive 2x the damage of their H2H weapon.
+
+&attack`unorth #1419=[u(attack`unorth`check)][if([u(func`cango,attack`unorth`gscheck)],[u(func`cango,attack`unorth`run)],[u(func`cango,attack`unorth`gscheck`failmessage)][setq(error,error)])]
+
+&attack`unorth`run #1419=[setq(strength,2)][setq(weapon1,H)][u(attack`normal)][u(attack`unorth`removeluck)]
+
+&attack`unorth`check #1419=[u(attack`unorth`check`luckavailable)]
+&attack`unorth`check`luckavailable #1419=[u(attack`prec`check`luckavailable)]
+
+&attack`unorth`result`calling #1419=[pemit(%#,[ansi(wh,You make an [ansi(yh,Unorthodox)] attack against [ansi(ch,[name(%q<targetDbref>)])].)])]
+
+&attack`unorth`result`target #1419=[pemit(%q<targetDbref>,[ansi(ch,%N)] [ansi(wh,makes an [ansi(yh,Unorthodox)] attack against you.)])]
+
+&attack`unorth`removeluck #1419=[u(attack`prec`removeluck)]
+
+&attack`unorth`gscheck #1419=[if([get(#1419/debug`attack)],[pemit(%#,[ansi(mh,--Unorthodox gscheck Debug--)])])][setq(v,[u(#1419/check,H2H,%#,%0)])][if([get(#1419/debug`attack)],[pemit(%#,Normal Difficulty: [u(global`gscheck`n`[first(%q<v>)])])])][gte([last(%q<v>,|)],[u(global`gscheck`n`[first(%q<v>)])])][unsetq(v)]
+
+&attack`unorth`gscheck`failmessage #1419=[remit([u(check`result`destination)],[ansi(wh,[ansi(ch,%N)] attempts to make an Unorthodox attack against [ansi(ch,[name(%q<targetDbref>)])] but fails miserably, taking [mul(2,[elements([setr(weapondata,[u(func`getweapon,H)])],5,|)])] damage %oself.)])][attrib_set(%#/xy`6`c,[sub([get(%#/xy`6`c)],1)])][setq(unorthfail,1,targetPilot,%#,targetVehicle,[loc(%#)])]
+
+----Drama Attack----
+
+Registers:
+	weapondata2 - Weapon data for the second weapon
+	weapondata3 - Weapon data for the third weapon
+
+Dramatic attacks use three weapon selections instead of one. They are done at the same strength. The normal attack code is used again, but one of the attributes in the normal attack has been rewritten to check if it's a dramatic attack, which if it is, adds some extra code written here into the normal attack code.
+
+&attack`drama #1419=[u(attack`drama`check)][u(func`cango,attack`drama`run)]
+
+&attack`drama`check #1419=[u(attack`drama`check`luckavailable)]
+&attack`drama`check`luckavailable #1419=[u(attack`prec`check`luckavailable)]
+
+&attack`drama`run #1419=[setq(strength,3)][u(attack`drama`run`ammo1)][u(func`cango,attack`drama`run`ammo2)][u(func`cango,attack`drama`run`ammo3)][u(func`cango,attack`normal)]
+
+&attack`drama`run`ammo1 #1419=[setq(weapondata,[u(func`getweapon,%q<weapon1>)])][if([u(ammo`check,%q<weapondata>,%q<strength>)],[u(attack`drama`run`ammo1`sub)],[setq(error,35)])]
+
+&attack`drama`run`ammo1`sub #1419=[u(ammo`mod,%q<weapon1>,%q<weapondata>,%q<strength>,[loc(%#)],-)]
+
+&attack`drama`run`ammo2 #1419=[setq(weapondata,[u(func`getweapon,%q<weapon2>)])][if([u(ammo`check,%q<weapondata>,%q<strength>)],[u(attack`drama`run`ammo2`sub)],[setq(error,35)][u(attack`drama`run`ammo2`refund)])]
+
+&attack`drama`run`ammo2`sub #1419=[u(ammo`mod,%q<weapon2>,%q<weapondata>,%q<strength>,[loc(%#)],-)]
+
+&attack`drama`run`ammo2`refund #1419=[u(ammo`mod,%q<weapon1>,[u(func`getweapon,%q<weapon1>)],%q<strength>,[loc(%#)],+)]
+
+&attack`drama`run`ammo3 #1419=[setq(weapondata,[u(func`getweapon,%q<weapon3>)])][if([u(ammo`check,%q<weapondata>,%q<strength>)],[u(attack`drama`run`ammo3`sub)],[setq(error,35)][u(attack`drama`run`ammo3`refund)])]
+
+&attack`drama`run`ammo3`sub #1419=[u(ammo`mod,%q<weapon3>,%q<weapondata>,%q<strength>,[loc(%#)],-)]
+
+&attack`drama`run`ammo3`refund #1419=[u(ammo`mod,%q<weapon1>,[u(func`getweapon,%q<weapon1>)],%q<strength>,[loc(%#)],+)][u(ammo`mod,%q<weapon2>,[u(func`getweapon,%q<weapon2>)],%q<strength>,[loc(%#)],+)]
+
+&attack`drama`weapondatas #1419=[setq(weapondata2,[u(func`getweapon,%q<weapon2>)])][setq(weapondata3,[u(func`getweapon,%q<weapon3>)])][u(func`cango,attack`normal`senddata)][u(func`cango,attack`drama`setweapons)]
+
+&attack`drama`setweapons #1419=[attrib_set(%q<targetDbref>/combatqueue`%q<queueattrib>`weapon2,%q<weapondata2>)][attrib_set(%q<targetDbref>/combatqueue`%q<queueattrib>`weapon3,%q<weapondata3>)][attrib_set(%q<targetDbref>/combatqueue`%q<queueattrib>`weapons,[extract(%q<weapondata>,2,1,|)][,]%r[extract(%q<weapondata2>,2,1,|)][,]%r[extract(%q<weapondata3>,2,1,|)])][attrib_set(%q<targetDbref>/combatqueue`%q<queueattrib>`selection2,%q<weapon2>)][attrib_set(%q<targetDbref>/combatqueue`%q<queueattrib>`selection3,%q<weapon3>)]
+
+&attack`drama`result`calling #1419=[pemit(%#,[ansi(wh,You attack [ansi(ch,[name(%q<targetDbref>)])] with a [ansi(rh,Dramatic)] attack using [ansi(ch,[extract(%q<weapondata>,2,1,|)])], [ansi(ch,[extract(%q<weapondata2>,2,1,|)])], [ansi(ch,[extract(%q<weapondata3>,2,1,|)])].)])]
+
+&attack`drama`result`target #1419=[pemit(%q<targetDbref>,[ansi(ch,%N)] [ansi(wh,makes a [ansi(rh,Dramatic)] attack against you using [ansi(ch,[extract(%q<weapondata>,2,1,|)])], [ansi(ch,[extract(%q<weapondata2>,2,1,|)])], [ansi(ch,[extract(%q<weapondata3>,2,1,|)])].)])]
+
+
+----AOE Attack----
+This attack requires checking and sending attack data to up to four other players. Hence it can't easily use the normal attack code like the previous attacks. The playerlist register contains everything before the = in the command. The idea is that the player enters the targets as a list of one-word names/aliases, or a full name in " ". This section then works through the list, identifying the 4 (max) players, then sends the information about the attack to them.
+
+Eg list: Astrus Xeero "Silver Hakumen" Govic
+
+&attack`aoe #1419=[u(attack`aoe`check)][u(func`cango,attack`aoe`run)]
+
+&attack`aoe`check #1419=[setq(playerlist,[trim(%q<playerlist>)])][u(attack`aoe`check`player1)][if([strlen(%q<playerlist>)],[setq(targetcount,2)][u(attack`aoe`check`player2)],[setq(error,23)])][if([strlen(%q<playerlist>)],[setq(targetcount,3)][u(attack`aoe`check`player3)])][if([strlen(%q<playerlist>)],[setq(targetcount,4)][u(attack`aoe`check`player4)]
+
+
+&attack`aoe`check`player1 #1419=[u(attack`aoe`setplayer,1)][u(check`check,%q<player1>)][setq(player1,[num(*%q<player1>)])][if([get([loc(%q<player1>)]/vehicle)],,[setq(error,19)])][if([hasflag(%q<player1>,connected)],,[setq(error,10)])][u(func`cango,attack`check`inroom,%#,%q<player1>)]
+&attack`aoe`check`player2 #1419=[u(attack`aoe`setplayer,2)][u(check`check,%q<player2>)][setq(player2,[num(*%q<player2>)])][if([get([loc(%q<player1>)]/vehicle)],,[setq(error,19)])][if([hasflag(%q<player2>,connected)],,[setq(error,10)])][u(func`cango,attack`check`inroom,%#,%q<player2>)]
+&attack`aoe`check`player3 #1419=[u(attack`aoe`setplayer,3)][u(check`check,%q<player3>)][setq(player3,[num(*%q<player3>)])][if([get([loc(%q<player1>)]/vehicle)],,[setq(error,19)])][if([hasflag(%q<player3>,connected)],,[setq(error,10)])][u(func`cango,attack`check`inroom,%#,%q<player3>)]
+&attack`aoe`check`player4 #1419=[u(attack`aoe`setplayer,4)][u(check`check,%q<player4>)][setq(player4,[num(*%q<player4>)])][if([get([loc(%q<player1>)]/vehicle)],,[setq(error,19)])][if([hasflag(%q<player4>,connected)],,[setq(error,10)])][u(func`cango,attack`check`inroom,%#,%q<player4>)]
+
+
+&attack`aoe`setplayer #1419=[if([match(",[left(%q<playerlist>,1)])],[setq(endpos,[pos(",[mid(%q<playerlist>,1,[strlen(%q<playerlist>)])])])][setq(player%0,[mid(%q<playerlist>,1,[sub(%q<endpos>,1)])])][setq(playerlist,[trim([mid(%q<playerlist>,[add(%q<endpos>,1)],[strlen(%q<playerlist>)])])])],[setq(player%0,[first(%q<playerlist>)])][setq(playerlist,[ldelete(%q<playerlist>,1)])])]
+
+
+&attack`aoe`run #1419=[setq(weapondata,[u(func`getweapon,%q<weapon1>)])][u(func`cango,attack`aoe`senddata)][unsetq(targetcount)]
+
+&attack`aoe`senddata #1419=[iter(%q<player1>|%q<player2>[if([strlen(%q<player3>)],|%q<player3>)][if([strlen(%q<player4>)],|%q<player4>)],[u(attack`aoe`senddata`loop,[num(##)])],|)][u(attack`aoe`senddata`clearluck)]
+
+&attack`aoe`senddata`loop #1419=[setq(targetDbref,%0)][u(attack`normal`senddata)]
+
+&attack`aoe`senddata`clearluck #1419=[if([get(%#/useluck)],[attrib_set(%#/useluck,0)][attrib_set(%#/xy`6`c,[sub([get(%#/xy`6`c)],1)])])]
+
+&attack`aoe`result`calling #1419=[pemit(%#,[ansi(wh,You attack [ansi(ch,[name(%q<player1>)])], [ansi(ch,[name(%q<player2>)])][if([strlen(%q<player3>)],[,] [ansi(ch,[name(%q<player3>)])])][if([strlen(%q<player4>)],[,] [ansi(ch,[name(%q<player4>)])])] with a level [ansi(ch,%q<strength>)] [ansi(yh,AOE)] attack using [ansi(ch,[extract(%q<weapondata>,2,1,|)])].)])]
+
+&attack`aoe`result`target #1419=[iter(%q<player1> %q<player2> [if([strlen(%q<player3>)],%q<player3>)] [if([strlen(%q<player4>)],%q<player4>)],[pemit([itext(0)],[ansi(ch,%N)] [ansi(wh,includes you in a level [ansi(ch,%q<strength>)] [ansi(yh,AOE)] attack using [ansi(ch,[extract(%q<weapondata>,2,1,|)])].)])])]
+
+
+----func`getweaponstat----
+
+Returns the xy of the relevant stat for the passed weapon.
+
+In:
+	%0 - Weapon info.
+
+&func`getWeaponStat #1419=[switch([left(%0,1)],H,xy`1,R,xy`2,M,xy`2,C,xy`1,[setq(error,15)])]
+
+
+----func`getweaponskill----
+
+Returns the xy of the relevant skill for the passed weapon.
+
+In:
+	%0 - Weapon info.
+
+&func`getWeaponSkill #1419=[switch([left(%0,1)],H,xy`101,R,,xy`206,M,xy`207,C,xy`102,[setq(error,15)])]
+
+
+----func`getweapon----
+
+Checks to see if the passed value corresponds to a valid weapon. If it does, returns that weapon.
+
+Parameters:
+	%0 - The weapon to get. Either H for H2H, or a number corresponding to the weapon in the +vsheet.
+	%1 - The target dbref (optional)
+
+Registers In:
+	personal - If 1, then this should be looking at the calling player's personal weapons list, else vehicles.
+
+&func`getweapon #1419=[switch(%0,H,[first([get([if(%1,%1,[if(%q<personal>,%#,[loc(%#)])])]/wx`[if(%q<personal>,p,i)])],^)],[setq(weaponlist,[get([if(%1,%1,[loc(%#)])]/wx`[if(%q<personal>,p,i)])][if([hasattrval([if(%1,%1,[loc(%#)])],wx`h)],^[get([if(%1,%1,[loc(%#)])]/wx`h)])][if([hasattrval([if(%1,%1,[loc(%#)])],wx`f)],^[get([if(%1,%1,[loc(%#)])]/wx`f)])])][if([lt(%0,[words(%q<weaponlist>,^)])],[extract(%q<weaponlist>,[add(%0,1)],1,^)],[setq(error,25)])])][unsetq(weaponlist)]
+
+
+----Debug----
+
+Contains the code used to debug the attack command.
+
+&attack`debug #1419=[pemit(%#,[ansi(rh,-Attack Debug-)]%rargument: %q<argument>%rpath: %q<path>%rplayer1: %q<player1>%rplayer2: %q<player2>%rplayer3: %q<player3>%rplayer4: %q<player4>%rweapon1: %q<weapon1>%rweapon2: %q<weapon2>%rweapon3: %q<weapon3>%rstrength: %q<strength>%rluck: [get(%q<targetDbref>/combatqueue`%q<queueattrib>`luck)]%rtargetDbref: %q<targetDbref>%rweapondata: %q<weapondata>%rqueueattrib: %q<queueattrib>%rvehicle: [get(%q<targetDbref>/combatqueue`%q<queueattrib>`vehicle)])]

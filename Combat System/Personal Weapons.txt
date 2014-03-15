@@ -1,0 +1,109 @@
+Name: Personal Weapons
+Programmer: Vincent Cross (Astrus)
+Date: August 2013
+
+Purpose:
+
+Personal weapons are intended to work exactly like vehicle weapons. They will be stored in the wx`p attribute of a player and will be visible through their inventory using a @hook/before.
+
+Code related to the personal weapons system, but not explicitly the combat system, will go on:
+
+Armory Parent: #1446
+
+This will then be used like the Hangar Terminal Parent to create Armories all around the grid.
+
+****Code****
+
+&h2hweapon #1446=H|[if([hasattrval(%#,h2hstyle)],[secure([decompose([get(%#/h2hstyle)])])] (H2H),Hand to Hand)]|0|HP|5|I|I|0|P
+
+----@hook/before----
+
+The @hook/before that tells the inventory command to show the player's weapons.
+
+&function`inventory #686=@hook/before inventory=#1446,inventory
+
+----inventory----
+
+This code is called by the @hook/before for the 'inventory' command. It displays a loadout of the player's currently equipped personal weapons. Personal weapons will use the exact same format as vehicle weapons and will be stored in wx`p:
+
+<type>|<name>|<accuracy>|<damage type>|<base damage>|<max ammo>|<current ammo>|<ammo use>|<placement>:<stat>><modifier>
+
+Eg:
+
+R|Handgun|-1|HP|10|16|16|1|P
+M|Missile Launcher|+1|HP|30|6|6|1|P:XY`2>-1
+
+&inventory #1446=[if([hastype(%#,player)],[pemit(%#,[sep([ansi(wh,Personal Weapons)])]%r[u(inventory`mid)]%r[sep()])])]
+
+&inventory`look #1446=[if([hastype(%0,player)],[u(inventory)])]
+
+&inventory`mid #1446=[align(1. 25 1. 6 1. 12 1. 14 1. 5 1.,[ansi(bh,|)],[ansi(yh,Weapon)],[ansi(bh,|)],[ansi(yh,Damage)],[ansi(bh,|)],[ansi(yh,Ammo)],[ansi(bh,|)],[ansi(yh,Ammo Use)],[ansi(bh,|)],[ansi(yh,Acc)],[ansi(bh,|)])]%r[sep()]%r[align(1. 25 1. 6 1. 12 1. 14 1. 5 1.,[ansi(bh,|)],[iter([get(%#/wx`p)],[ansi(yh,[switch([inum(0)],1,H,[sub([inum(0)],1)])])]: [left([elements(%i0,2,|)],22)],^,%r)],[ansi(bh,|)],[iter([get(%#/wx`p)],[elements(%i0,5,|)],^,%r)],[ansi(bh,|)],[iter([get(%#/wx`p)],[switch([elements(%i0,6,|)],I,N/A,[elements(%i0,7,|)] / [elements(%i0,6,|)])],^,%r)],[ansi(bh,|)],[iter([get(%#/wx`p)],[switch([elements(%i0,8,|)],0,N/A,[elements(%i0,8,|)]:[mul([elements(%i0,8,|)],2)]:[mul([elements(%i0,8,|)],3)])],^,%r)],[ansi(bh,|)],[iter([get(%#/wx`p)],[elements(%i0,3,|)],^,%r)],[ansi(bh,|)])]
+
+----cmd_+weapons----
+
+Practically identical to the Hangar Terminal command, shows the player a list of personal weapons available at the armory.
+
+&cmd_+weapons #1446=$+weapons:think [setq(d,0)][setq(a,1)];think [u(cmd_weaponspage`run)]
+&cmd_+weaponspage #1446=$+weapons *:think [setq(d,0)][setq(a,[secure([decompose(%0)])])];think [switch(%qa,0,[pemit(%#,Error, there is no page zero.)],[u(cmd_weaponspage`run)])]
+
+&cmd_weaponspage`run #1446=[if([lt([setr(c,[nattr(#1446/personalweapons`list`*)])],[mul([sub(%qa,1)],25)])],[pemit(%#,Error, that page does not exist.)],[pemit(%#,[header(Armory Terminal - Available Personal Weapons)]%r[align(1. 3 1. 22 1. 7 1. 8 1. 8 1. 11 1.,[ansi(bh,|)],[ansi(yh,#)],[ansi(bh,|)],[ansi(yh,Weapon Name)],[ansi(bh,|)],[ansi(yh,Damage)],[ansi(bh,|)],[ansi(yh,Max Ammo)],[ansi(bh,|)],[ansi(yh,Ammo Use)],[ansi(bh,|)],[ansi(yh,Mods)],[ansi(bh,|)])]%r[sep()]%r[iter([if([gt(%qc,[mul(25,%qa)])],[setq(d,1)])][extract([sort([lattr(#1446/personalweapons`list`*)])],[setr(b,[add([mul(25,[sub(%qa,1)])],1)])],25)],[align(1. 3 1. 22 1. 7 1. 8 1. 8 1. 11 1.,[ansi(bh,|)],[last(##,`)],[ansi(bh,|)],[elements([get(#1446/##)],2,|)],[ansi(bh,|)],[elements([get(#1446/##)],5,|)],[ansi(bh,|)],[elements([get(#1446/##)],6,|)],[ansi(bh,|)],[setr(1,[elements([get(#1446/##)],8,|)])]:[mul(%q1,2)]:[mul(%q1,3)],[ansi(bh,|)],[iter([after([get(#1446/##)],:)],[switch([before([itext(0)],>)],XY`1,Str,XY`2,Dex,XY`3,End,XY`4,Int,XY`5,Spi,[after([before([itext(0)],>)],`)])]%b[ansi([switch([gt([after([itext(0)],>)],0)],1,gh,rh)],[switch([left([after([itext(0)],>)],1)],+,[after([itext(0)],>)],-,[after([itext(0)],>)],+[after([itext(0)],>)])])],,%r)],[ansi(bh,|)])],,%r)]%r[sep([switch(%qd,0,,1,More on Page [add(%qa,1)])])])])]
+
+----cmd_+equip----
+
+Practically identical to the similar Hangar Terminal command, equips the selected weapon onto the player.
+
+&cmd_+equip #1446=$+equip *:think [setq(9,0)][setq(a,%#)][setq(b,[secure([decompose(%0)])])];think [u(equip`check)];think [switch(%q9,0,[u(equip`run)],E,,[u(equip`msg)])];think [switch(%q9,0,[pemit(%#,You've added [ansi(ch,[elements([get(#1446/personalweapons`list`%qb)],2,|)])] to your inventory.)],E,,[u(equip`msg)])]
+
+&equip`check #1446=[if([hasattrval(#1446,personalweapons`list`%qb)],,[setq(9,1)])]
+
+&equip`run #1446=[set(%qa,wx`p:[get(%qa/wx`p)]^[get(#1446/personalweapons`list`%qb)])][switch([strlen([last([get(#1446/personalweapons`list`%qb)],|)])],1,,[u(equip`run`statmod)])]
+
+&equip`run`statmod #1446=[setq(e,[after([last([get(#1446/personalweapons`list`%qb)],|)],:)])][iter(%qe,[set(%qa,[before(##,>)]`c:[add([get(%qa/[before(##,>)]`c)],[after(##,>)])])])]
+
+&equip`msg #1446=[pemit(%#,Error Code: %q9 - [u(equip`msg`%q9)])][setq(9,E)]
+&equip`msg`1 #1446=Invalid weapon number.
+
+
+----+drop----
+
+Allows you to drop a weapon that is currently in your inventory. The equivalent of +jettison.
+
+Registers:
+	a - Player dbref
+	b - Weapon selection
+	weapon - The weapon data
+
+&cmd_+drop #838=$+drop *:think [setq(9,0)][setq(b,[secure([decompose(%0)])])];think [setq(list,[get(%#/wx`p)])][u(#1446/drop`check)];think [switch(%q9,0,[u(#1446/drop`run)],E,,[u(#1446/equip`msg)])];think [switch(%q9,0,[pemit(%#,You've dropped [ansi(ch,[elements(%q<weapon>,2,|)])] from your inventory.)],E,,[u(#1446/equip`msg)])]
+
+&drop`check #1446=[if([lt(%qb,[words([get(%#/wx`p)],^)])],[setq(b,[add(%qb,1)])],[setq(9,1)])]
+
+&drop`run #1446=[setq(weapon,[elements([get(%#/wx`p)],%qb,^)])][setq(a,%#)][switch([strlen([last(%q<weapon>,|)])],1,,[u(drop`run`statmod)])][attrib_set(%#/wx`p,[ldelete([get(%#/wx`p)],%qb,^)])]
+
+&drop`run`statmod #1446=[setq(e,[after([last(%q<weapon>,|)],:)])][iter(%qe,[set(%qa,[before(##,>)]`c:[sub([get(%qa/[before(##,>)]`c)],[after(##,>)])])])]
+
+
+
+----+ammo/personal----
+
+This is an extension of the +ammo command which allows you to alter the ammo of your personal weapons while you are inside a vehicle.
+
+In:
+	%0 - The weapon selection.
+	%1 - The amount to mod the weapon ammo.
+
+Registers:
+	error - If there's an error
+	weaponlist - The list of all personal weapons on the player
+	selection - Weapon selection
+	mod - The amount to mod the weapon ammo
+	weapondata - The weapondata to modify
+
+&cmd_+ammo/personal #838=$+ammo/personal *=*:think [setq(error,0,weaponlist,[get(%#/wx`p)],selection,[secure([decompose(%0)])],mod,[secure([decompose(%1)])])][u(#1446/ammopersonal`check)];think [switch(%q<error>,0,[u(#1446/ammopersonal`run)])];think [switch(%q<error>,0,[u(#1446/ammopersonal`message)])]
+
+&ammopersonal`check #1446=[if([lt(%q<selection>,[words(%q<weaponlist>,^)])],[setq(selection,[add(%q<selection>,1)])],[setq(error,1)][u(ammopersonal`error)])][if([isnum(%q<mod>)],,[setq(error,2)][u(ammopersonal`error)])]
+
+&ammopersonal`error #1446=[pemit(%#,Error - [switch(%q<error>,1,Invalid weapon selection.,2,Amount to add/subtract must be a number.,3,That weapon doesn't use ammo.)])]
+
+&ammopersonal`run #1446=[setq(weapondata,[elements(%q<weaponlist>,%q<selection>,^)])][switch([elements(%q<weapondata>,6,|)],I,[setq(error,3)][u(ammopersonal`error)],[attrib_set(%#/wx`p,[replace(%q<weaponlist>,%q<selection>,[replace(%q<weapondata>,7,[if([gt([add([elements(%q<weapondata>,7,|)],%q<mod>)],[elements(%q<weapondata>,6,|)])],[elements(%q<weapondata>,6,|)],[add([elements(%q<weapondata>,7,|)],%q<mod>)])],|)],^)])])]
+
+&ammopersonal`message #1446=[remit([if([get([loc(%#)]/vehicle)],[loc([loc(%#)])],[loc(%#)])],[ansi(ch,%N)] [ansi(wh,[switch([left(%q<mod>,1)],-,subtracts [after(%q<mod>,-)] from,adds %q<mod> to)] their [ansi(ch,[elements(%q<weapondata>,2,|)])].)])]

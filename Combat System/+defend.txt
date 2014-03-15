@@ -1,0 +1,496 @@
+Name: +defend
+Programmer: Vincent Cross (Astrus)
+Date: June 2013
+
+Purpose:
+
+Outline:
+
+The +defend code represents the bulk of the combat system. The +attack command simply sets up an attack, it is the +defend where the defender chooses how to respond to the attack, and where the calculations are run to determine who wins. The command will rely heavily on the existing +check and +compare code of the aiming system.
+
++defend can be used in the following ways:
+
++defend *
++defend #=*
+
+The former defends against the most recent attacking using the indicated defense type. The second defends against the specific attack number as shown in the +defend queue. All defense methods can be used in either way. Below are the 5 types of defenses:
+
++defend E - Defends by evading
++defend D - Defends by defending/block
++defend C:3 - Defends by countering with the specified weapon
++defend I - Defends by intercepting
++defend * * * - Defends against a Dramatic attack using the three selected methods. The 'C:3' of a counterattack counts as one method.
+
+
+----Queue Record Structure Example----
+
+A reminder of the structure of the queue records.
+
+#&combatqueue`1360801109 #619=#4
+#&combatqueue`1360801109`type #619=Normal
+#&combatqueue`1360801109`weapons #619=Gunpod
+#&combatqueue`1360801109`strength #619=3
+#&combatqueue`1360801109`weapon1 #619=R|Mauler REB-22 Energy Cannons|-3|HP|95|I|I|0|I
+#&combatqueue`1360801109`weapon2 #619=R|Mauler REB-22 Energy Cannons|-3|HP|95|I|I|0|I
+#&combatqueue`1360801109`weapon3 #619=R|Mauler REB-22 Energy Cannons|-3|HP|95|I|I|0|I
+#&combatqueue`1360801109`luck #619=1
+#&combatqueue`1360801109`vehicle=#926
+
+++++Code++++
+
+----+defend *----
+
+Registers:
+	argument - The argument passed to the command
+	queueitem - The queue item to defend against (if applicable)
+	secondarg - The method of defense
+	path - The path that the command will take
+	counterweapon - The weapon being used to counterattack
+	method1 - The defend method against the first attack in the dramatic attack
+	method2
+	method3
+	counter1 - The weapon being used to counter the first attack in a dramatic attack
+	counter2
+	counter3
+	result - The result of a compare defense. Usually the main result.
+	armorresult - Special result for defending, shows the result of the Armor check
+	
+The +defend * command takes all of the possible methods of defending, figures which one is being used and diverts the code to that path.
+
+
+&cmd_fulldefend #1418=$+defend *:think [setq(error,0,argument,%0)][setq(path,[u(#1419/defend`findpath)])];think [unsetq(patternnum)][u(#1419/func`cango,#1419/defend`findattack)];think [u(#1419/func`cango,#1419/defend`core)];think [if(%q<run>,[u(#1419/func`cango,#1419/defend`drama`run)][setq(run,2)])];think [if(%q<run>,[u(#1419/func`cango,#1419/defend`drama`run)][setq(run,3)])];think [if(%q<run>,[u(#1419/func`cango,#1419/defend`drama`run)])];think [unsetq(run)];think [if([get(#1419/debug`+defend)],[u(#1419/func`cango,#1419/defend`debug)])];think [switch([get(%#/%q<attackattrib>`type)],drama,,[u(#1419/func`cango,#1419/defend`result`1)])];think [switch([get(%#/%q<attackattrib>`type)],drama,[u(#1419/defend`result`drama`createoutcomes,1)])][u(#1419/func`cango,#1419/outcome,1,before)];think [if([u(#1419/outcome`triggerdamage,1)],[u(#1419/func`cango,#1419/damage)])];think [u(#1419/func`cango,#1419/outcome,1,after)];think [if([or([match(dualcs dualcf,%q<outcome>)],[match(drama,[get(%#/%q<attackattrib>`type)])])],[switch([get(%#/%q<attackattrib>`type)],drama,[u(#1419/defend`result`drama`createoutcomes,2)])][u(#1419/func`cango,#1419/outcome,2,before)])];think [if([or([match(dualcs dualcf,%q<outcome>)],[match(drama,[get(%#/%q<attackattrib>`type)])])],[if([u(#1419/outcome`triggerdamage,2)],[u(#1419/func`cango,#1419/damage)])])];think [if([or([match(dualcs dualcf,%q<outcome>)],[match(drama,[get(%#/%q<attackattrib>`type)])])],[u(#1419/func`cango,#1419/outcome,2,after)])];think [if([match(drama,[get(%#/%q<attackattrib>`type)])],[switch([get(%#/%q<attackattrib>`type)],drama,[u(#1419/defend`result`drama`createoutcomes,3)])][u(#1419/func`cango,#1419/outcome,3,before)])];think [if([match(drama,[get(%#/%q<attackattrib>`type)])],[if([u(#1419/outcome`triggerdamage,3)],[u(#1419/func`cango,#1419/damage)])])];think [if([match(drama,[get(%#/%q<attackattrib>`type)])],[u(#1419/func`cango,#1419/outcome,3,after)])];think [switch([get(%#/%q<attackattrib>`type)],drama,[u(#1419/func`cango,#1419/defend`result`drama)],[u(#1419/func`cango,#1419/defend`result`2)])];think [u(#1419/func`cango,#1419/duration`run,defend,%#,[get(%#/%q<attackattrib>)])];think [u(#1419/func`cango,#1419/defend`finish)]
+
+----defend`findpath----
+
+Checks the argument to find out which path the defender is taking.
+
+Out:
+	path - The path they are taking (evade, defend, counter, inter, drama)
+
+&defend`findpath #1419=[if([regmatch(%q<argument>,(\\d+)=(.+),1:queueitem 2:secondarg)],[setq(argument,%q<secondarg>)])][setq(patternnum,1)][switch([u(defend`findpath`regmatch)],1,evade,2,defend,3,counter,4,inter,5,drama,6,none)][unsetq(argument)]
+
+&defend`findpath`regmatch #1419=[if([u(defend`findpath`pattern%q<patternnum>)],%q<patternnum>,[setq(patternnum,[add(%q<patternnum>,1)])][u(defend`findpath`regmatch)])]
+
+&defend`findpath`pattern1 #1419=[regmatch(%q<argument>,^(E|e)$)]
+
+&defend`findpath`pattern2 #1419=[regmatch(%q<argument>,^(D|d)$)]
+
+&defend`findpath`pattern3 #1419=[regmatch(%q<argument>,^(C|c):(\\d+|H|h)$,2:counterweapon)]
+
+&defend`findpath`pattern4 #1419=[regmatch(%q<argument>,^(I|i)$)]
+
+&defend`findpath`pattern5 #1419=[regmatch(%q<argument>,^(E|e|D|d|(C|c):(\\d+)|I|i) (E|e|D|d|(C|c):(\\d+)|I|i) (E|e|D|d|(C|c):(\\d+)|I|i)$,1:method1 3:counter1 4:method2 6:counter2 7:method3 9:counter3)]
+
+&defend`findpath`pattern6 #1419=[regmatch(%q<argument>,^(.+))]
+
+
+----defend`findattack----
+
+Finds the attack that the user is defending against. In one case it's the most recent, in the other it's the one selected by the player.
+
+Registers:
+	secondarg - If there is something in this register then the user has selected a specific attack.
+	queueitem - The number entered by the player as the attack to defend against, if applicable.
+	attackattrib - The attribute containing the attack information.
+	reverselist - The list of attack attributes in the player's queue, ordered by newest to oldest. The same list displayed in the +defend queue
+
+&defend`findattack #1419=[setr(reverselist,[revwords([sort([lattr(%#/combatqueue`*)])])])][if([words(%q<secondarg>)],[u(defend`findattack`selected)],[u(defend`findattack`recent)])][u(defend`findattack`drama)][unsetq(reverselist secondarg)]
+
+&defend`findattack`drama #1419=[switch([get(%#/%q<attackattrib>`type)],Drama,[switch(%q<path>,Drama,,[setq(error,36)])])]
+
+&defend`findattack`selected #1419=[u(defend`findattack`selected`isvalid)][u(func`cango,defend`findattack`selected`run)]
+
+&defend`findattack`selected`isvalid #1419=[if([or([lt(%q<queueitem>,1)],[gt(%q<queueitem>,[words(%q<reverselist>)])])],[setq(error,24)])]
+
+&defend`findattack`selected`run #1419=[setq(attackattrib,[elements(%q<reverselist>,%q<queueitem>)])][unsetq(queueitem)]
+
+&defend`findattack`recent #1419=[if([words(%q<reverselist>)],[setq(attackattrib,[first(%q<reverselist>)])],[setq(error,20)])]
+
+----Paths----
+
+In the following sections is the code for each path the combat can take. Depending upon the path and the type of attack, the code may have to handle things differently. Each path will start by defending against a normal attack (except the dramatic defense which only defends against dramatic attacks).
+
+
+----Core----
+
+This code simply determines which type of attack is being used and splits the path to the corresponding code. It also prepares the various mod registers.
+
+Register:
+	attackerweapon - The weapon data for the attacker
+
+&defend`core #1419=[u(defend`core`check)][u(func`cango,defend`core`check`success)]
+
+&defend`core`check #1419=[u(attack`check`koed,%#)]
+
+&defend`core`check`success #1419=[switch(%q<path>,none,[setq(error,23)],[setq(attackerweapon,[get(%#/%q<attackattrib>`weapon1)])][u(func`cango,defend`core`setup)])]
+
+&defend`core`setup #1419=[u(defend`core`run)]
+
+&defend`core`run #1419=[u(defend`%q<path>`[get(%#/%q<attackattrib>`type)])][unsetq(attackerweapon)]
+
+----Evade - Normal----
+
+This code runs if the player is defending against a normal attack by evading. The code will do a compare between the attacking player and the defending player. The attacking player will use the stats in the attack attribute, with their skills selected as relevant to the weapon they are using. They'll also receive a mod to their accuracy threshold depending upon the accuracy rating of the weapon they are using. The defending player will use their vehicle's Speed stat, in conjunction with their Piloting skill and Endurance stat. All this is done automatically simply by calling the compare code that is part of the aiming system.
+
+Registers:
+	callingResult - The defender's result from the compare in format <type> <skill>:<dbref>:<result>
+	targetResult - The attacker's result from the compare in format ^
+	
+&defend`evade`normal #1419=[u(defend`evade`normal`run)][u(func`cango,defend`evade`normal`weaponmod)][u(func`cango,defend`evade`normal`luckmod)]
+
+&defend`evade`normal`run #1419=[if([get(%#/%q<attackattrib>`vehicle)],[setq(v2run,[get(%#/%q<attackattrib>`vehicle)])])][setq(targetPlayer,[get(%#/%q<attackattrib>)],callingSel,VS xy`c,targetSel,[u(func`getweaponvehicleskill,%q<attackerweapon>)])][u(compare`run,O)][unsetq(callingsel targetsel)]
+
+&defend`evade`normal`weaponmod #1419=[setq(targetResult,[u(func`addmod,%q<targetResult>,[mul([elements(%q<attackerweapon>,3,|)],[get(%#/%q<attackattrib>`strength)])])])]
+
+&defend`evade`normal`luckmod #1419=[if([get(%#/useluck)],[u(defend`evade`normal`luckmod`defender)])][if([get(%#/%q<attackattrib>`luck)],[u(defend`evade`normal`luckmod`attacker)])]
+
+&defend`evade`normal`luckmod`defender #1419=[switch([get(%#/%q<attackattrib>`type)],drama,,[setq(luck,1)][attrib_set(%#/xy`6`c,[sub([get(%#/xy`6`c)],1)])][attrib_set(%#/useluck,0)][setq(callingResult,[u(func`addmod,%q<callingResult>,[u(global`luckbonus)])])])]
+
+&defend`evade`normal`luckmod`attacker #1419=[setq(targetResult,[u(func`addmod,%q<targetResult>,[u(global`luckbonus)])])]
+
+----Evade - H2H----
+
+Exactly the same as Normal, just separated in case things need to change in the future.
+
+&defend`evade`H2H #1419=[u(defend`evade`normal)]
+
+
+----Evade - Precision----
+
+Again, works almost exactly the same as normal. However, there is a accuracy mod for the precision attack as recorded in the Globals file. At writing of this code, it's a -10 modifier.
+
+&defend`evade`prec #1419=[u(defend`evade`normal)][u(defend`evade`prec`accmod)]
+
+&defend`evade`prec`accmod #1419=[setq(targetResult,[u(func`addmod,%q<targetResult>,[u(global`precmod)])])]
+
+----Evade - Unorthodox----
+
+Evading an unorthodox attack is pretty much the same as a normal attack. The only difference is it has a modifier to the attacker's roll of -6 for vehicles at the time of this comment.
+
+&defend`evade`unorth #1419=[u(defend`evade`normal)][u(func`cango,defend`evade`unorth`accmod)]
+
+&defend`evade`unorth`accmod #1419=[setq(targetResult,[u(func`addmod,%q<targetResult>,[u(global`unorthmod`vehicle)])])]
+
+
+----Evade - AOE----
+
+Evading an AOE is exactly the same as evading a normal, since as far as the defender is concerned, it is a normal attack.
+
+&defend`evade`aoe #1419=[u(defend`evade`normal)]
+
+
+----Evade - Drama----
+
+Simply redirects the drama attack to the normal attack code.
+
+&defend`evade`drama #1419=[u(defend`evade`normal)]
+
+
+----Defend - Normal----
+
+Defending against an attack is a little more involved than with evading. First, it can't be done by VFs in fighter mode. Second it involves an evade check but with only a 30% evade threshold. Then if the attacker hits, an Armor/Defense roll is made. Failing the armor/defense roll does nothing. Succeeding adds to armor mitigation. Thankfully, all that needs to be done is to call the evade - normal code and then multiply it by .3.
+
+&defend`defend`normal #1419=[u(defend`defend`check)][u(func`cango,defend`defend`normal`run)]
+
+&defend`defend`check #1419=[switch([get([loc(%#)]/yz`5)],F,[setq(error,26)])]
+
+&defend`defend`normal`run #1419=[u(defend`evade`normal)][u(func`cango,defend`defend`normal`defendpenalty)]
+
+&defend`defend`normal`defendpenalty #1419=[setq(callingResult,[u(func`mulmod,%q<callingResult>,[u(global`defendpenalty)])])]
+
+
+----Defend - H2H----
+
+Again, essentially exactly the same as the Defend - Normal, so can juse reuse the code.
+
+&defend`defend`H2H #1419=[u(defend`defend`normal)]
+
+
+
+----Defend - Precision----
+
+Much like with the evade precision, the precision attack has a modifier to the accuracy of the attacker.
+
+&defend`defend`prec #1419=[u(defend`defend`check)][u(func`cango,defend`defend`prec`run)]
+
+&defend`defend`prec`run #1419=[u(defend`defend`normal`run)][u(defend`evade`prec`accmod)]
+
+
+----Defend - Unorthodox----
+
+Much like defend - normal, except for the unorthodox mod to the attacker's accuracy.
+
+&defend`defend`unorth #1419=[u(defend`defend`normal)][u(func`cango,[u(defend`evade`unorth`accmod)])]
+
+
+----Defend - AOE----
+
+Once again, works exactly like the defend normal code, since as far as the defender is concerned, an AOE attack is a normal attack with a different name.
+
+&defend`defend`aoe #1419=[u(defend`defend`normal)]
+
+----Defend - Drama----
+
+Simply redirects the drama attack to the normal attack code.
+
+&defend`defend`drama #1419=[u(defend`defend`normal)]
+
+
+----Counter - Normal----
+
+The counter method uses one of the defender vehicle's weapons to launch a counterattack against the attacker. During the attempt, the defender will have half their accuracy threshold. If they succeed, they dont receive the enemy attack. If they fail, they do and with no armor mitigation. For the purposes of this stage of the system, this is simply a half-threshold aiming check.
+
+&defend`counter`normal #1419=[u(defend`counter`normal`run)][u(func`cango,defend`counter`normal`weaponmod)][u(func`cango,defend`counter`normal`luckmod)][u(func`cango,defend`counter`normal`defaccmod)][u(func`cango,defend`counter`normal`atkaccmod)]
+
+&defend`counter`normal`run #1419=[setq(targetPlayer,[get(%#/%q<attackattrib>)],callingSel,[u(func`getweaponvehicleskill,[setr(weapondata,[u(func`getweapon,%q<counterweapon>)])])],targetSel,VS xy`c)][if([u(ammo`check,%q<weapondata>,2)],,[setq(error,35)])][u(ammo`mod,%q<counterweapon>,%q<weapondata>,2,[loc(%#)],-)][u(compare`run,O)][unsetq(callingSel targetSel weapondata)]
+
+&defend`counter`normal`weaponmod #1419=[setq(callingResult,[u(func`addmod,%q<callingResult>,[mul([elements([u(func`getweapon,%q<counterweapon>)],3,|)],2)])])]
+
+&defend`counter`normal`luckmod #1419=[u(defend`evade`normal`luckmod)]
+
+&defend`counter`normal`defaccmod #1419=[setq(callingResult,[u(func`mulmod,%q<callingResult>,[u(global`counterpenalty)])])]
+
+&defend`counter`normal`atkaccmod #1419=[u(defend`evade`normal`weaponmod)]
+
+
+----Counter - H2H----
+
+Exactly the same as counter normal.
+
+&defend`counter`H2H #1419=[u(defend`counter`normal)]
+
+
+----Counter - Precision----
+
+Because the attacker is making no aim check, they don't receive the normal -10 modifier for the precision attack. So, countering a precision attack is identical as countering a normal attack.
+
+&defend`counter`prec #1419=[u(defend`counter`normal)]
+
+
+----Counter - Unorthodox----
+
+Much like with precision, the effects of an unorthodox attack are essentially unneeded here.
+
+&defend`counter`unorth #1419=[u(defend`counter`normal)]
+
+
+----Counter - AOE ----
+
+Much like the others, works exactly the same as countering a normal since the defender sees an AOE attack as a normal attack.
+
+&defend`counter`AOE #1419=[u(defend`counter`normal)]
+
+
+----Counter - Drama----
+
+Simply redirects the drama attack to the normal attack code.
+
+&defend`counter`drama #1419=[u(defend`counter`normal)]
+
+
+----Intercept - Normal----
+An intercept defense action simply makes an Intercept roll against the attacker, with a bonus of +5 to the defend's threshold. Can only be used against missile weapons.
+
+Registers:
+	attackerweapon - The weapon data of the attacker
+
+&defend`inter`normal #1419=[u(defend`inter`normal`check)][u(func`cango,defend`inter`normal`run)]
+
+&defend`inter`normal`check #1419=[switch([elements(%q<attackerweapon>,1,|)],M,,[setq(error,27)])]
+
+&defend`inter`normal`run #1419=[u(defend`inter`normal`main)][u(func`cango,defend`inter`normal`luckmod)][u(func`cango,defend`inter`normal`interbonus)][u(func`cango,defend`inter`normal`weaponmod)]
+
+&defend`inter`normal`main #1419=[setq(targetPlayer,[get(%#/%q<attackattrib>)],callingSel,VS xy`d,targetSel,SK xy`212)][u(compare`run,O)][unsetq(callingSel targetSel)]
+
+&defend`inter`normal`luckmod #1419=[u(defend`evade`normal`luckmod)]
+
+&defend`inter`normal`interbonus #1419=[setq(callingResult,[u(func`addmod,%q<callingResult>,[u(global`interbonus)])])]
+
+&defend`inter`normal`weaponmod #1419=[u(defend`evade`normal`weaponmod)]
+
+----Intercept - H2H----
+
+Cant do an intercept against a H2H attack.
+
+&defend`inter`H2H #1419=[setq(error,27)]
+
+
+----Intercept - Precision----
+
+Works just like intercepting a normal attack, except for the normal accuracy mod of the attacker's roll.
+
+&defend`inter`prec #1419=[u(defend`inter`normal)][u(defend`inter`prec`precmod)]
+
+&defend`inter`prec`precmod #1419=[u(defend`evade`prec`accmod)]
+
+
+----Intercept - Unorthodox----
+
+Cant do an intercept against an unorthodox attack.
+
+&defend`inter`unorth #1419=[setq(error,27)]
+
+----Intercept - AOE----
+
+Works exactly the same as the intercept normal code.
+
+&defend`inter`AOE #1419=[u(defend`inter`normal)]
+
+----Intercept - Drama----
+
+Simply redirects the drama attack to the normal attack code.
+
+&defend`inter`drama #1419=[u(defend`inter`normal)]
+
+
+----Dramatic----
+
+Defending against a dramatic involves three separate defense actions, one for each attack coming in. There is also the bonus to attacker accuracy for each successive attack.
+
+Registers:
+	run: The current run stage (1, 2, 3)
+	results: The results of the dramatic run (callingResult1|callingRoll1>targetResult1|targetRoll1>callingResult2|callingRoll2>targetResult2|targetRoll2>callingResult3|callingRoll3>targetResult3|targetRoll3)
+
+&defend`drama`drama #1419=[setq(run,1)][setq(methods,%q<method1> %q<method2> %q<method3>)][unsetq(method1 method2 method3)]
+
+&defend`drama`run #1419=[switch([left([elements(%q<methods>,%q<run>)],1)],E,[setq(path,evade)],e,[setq(path,evade)],D,[setq(path,defend)],d,[setq(path,defend)],C,[setq(counterweapon,%q<counter%q<run>>)][setq(path,counter)],c,[setq(counterweapon,%q<counter%q<run>>)][setq(path,counter)],I,[setq(path,inter)],i,[setq(path,inter)])][u(defend`drama`runcore)][unsetq(callingresult callingroll targetresult targeroll)]
+
+&defend`drama`runcore #1419=[setq(attackerweapon,[get(%#/%q<attackattrib>`weapon%q<run>)])][u(defend`core`setup)][u(defend`drama`dramabonus)][u(defend`drama`luckbonus)][if([words(%q<results>)],[setq(results,%q<results>>%q<callingResult>|%q<callingRoll>>%q<targetResult>|%q<targetRoll>)],[setq(results,%q<callingResult>|%q<callingRoll>>%q<targetResult>|%q<targetRoll>)])]
+
+&defend`drama`dramabonus #1419=[setq(targetResult,[u(func`addmod,%q<targetResult>,[u(global`dramabonus`%q<run>`[first(%q<targetResult>)])])])])]
+
+&defend`drama`luckbonus #1419=[if([get(%#/useluck)],[u(defend`drama`luckbonus`check)][u(func`cango,defend`drama`luckbonus`run)])]
+
+&defend`drama`luckbonus`check #1419=[if([gte([get(%#/xy`6`c)],3)],,[setq(error,1)])]
+
+&defend`drama`luckbonus`run #1419=[switch(%q<run>,1,[setq(luck,1)][setq(callingResult,[u(func`addmod,%q<callingResult>,[u(global`luckbonus)])])],2,[setq(luck,1)][setq(callingResult,[u(func`addmod,%q<callingResult>,[u(global`luckbonus)])])],3,[setq(luck,1)][setq(callingResult,[u(func`addmod,%q<callingResult>,[u(global`luckbonus)])])][attrib_set(%#/xy`6`c,[sub([get(%#/xy`6`c)],3)])][attrib_set(%#/useluck,0)],)]
+
+
+----defend`finish----
+
+Once the attack has finished, this code clears the attack attribute, thereby signalling the finish of the attack and so it cannot be defended against again.
+
+Registers:
+	attackattrib - The attackattrib to clear.
+
+&defend`finish #1419=[if([hasattrval(%#,%q<attackattrib>)],[wipe(%#/%q<attackattrib>)])][unsetq(attackattrib)]
+
+
+----getWeaponStat----
+
+Gets the relevant weapon stat based upon the passed weapon data.
+
+	In: %0=weapon data
+	Out: Stat xy
+
+&func`getWeaponStat #1419=[switch([left(%0,1)],H,xy`1,R,xy`2,M,xy`2,C,xy`1,[setq(error,15)])]
+
+
++++++Test:
+
+think Good(xy`1): [u(#1290/func`getweaponstat,H|Hand to Hand|-2|HP|60|I|I|0|I)]
+think Good(xy`2): [u(#1290/func`getweaponstat,R|GV-17L Gunpod|-3|HP|75|200|200|5|I)]
+think Good(xy`2): [u(#1290/func`getweaponstat,M|Bifors BMM-24 HMMS|+4|HP|180|48|48|4|I)]
+think Good(xy`1): [u(#1290/func`getweaponstat,C|Knife|-2|HP|60|I|I|0|I)]
+
+think Bad(25): [u(#1290/func`getweaponstat,L|Whoops|-2|HP|60|I|I|0|I)][u(#1290/error,%q<error>)]
+think Bad(25): [u(#1290/func`getweaponstat,Not a weapon)][u(#1290/error,%q<error>)]
+
+----getWeaponSkill----
+
+Gets the relevant weapon skill based upon the passed weapon data.
+
+	In: %0=weapon data, %1=0 if personal weapon, 1 if vehicle weapon
+	Out: Skill xy
+
+&func`getWeaponSkill #1419=[switch([left(%0,1)],H,xy`101,R,,xy`206,M,xy`207,C,xy`102,[setq(error,15)])]
+
+
++++++Test:
+
+think Good(xy`101): [u(#1290/func`getweaponskill,H|Hand to Hand|-2|HP|60|I|I|0|I,1)]
+think Good(xy`212): [u(#1290/func`getweaponskill,R|GV-17L Gunpod|-3|HP|75|200|200|5|I,1)]
+think Good(xy`206): [u(#1290/func`getweaponskill,R|GV-17L Gunpod|-3|HP|75|200|200|5|I,0)]
+think Good(xy`212): [u(#1290/func`getweaponskill,M|Bifors BMM-24 HMMS|+4|HP|180|48|48|4|I,1)]
+think Good(xy`207): [u(#1290/func`getweaponskill,M|Bifors BMM-24 HMMS|+4|HP|180|48|48|4|I)]
+think Good(xy`102): [u(#1290/func`getweaponskill,C|Knife|-2|HP|60|I|I|0|I)]
+
+think Bad(25): [u(#1290/func`getweaponstat,L|Whoops|-2|HP|60|I|I|0|I)][u(#1290/error,%q<error>)]
+think Bad(25): [u(#1290/func`getweaponstat,Not a weapon)][u(#1290/error,%q<error>)]
+
+
+----getWeaponVehicleSkill----
+
+Gets the relevant vehicle skill based upon the passed weapon data.
+
+	In: %0=weapon data
+	Out: Targeting Gunnery, Targeting Melee or Targeting H2H
+
+&func`getWeaponVehicleSkill #1419=[switch([left(%0,1)],H,SK xy`101,R,SK xy`212,M,SK xy`212,C,SK xy`102,[setq(error,15)])]
+
+
+----func`addmod----
+
+Adds the passed mod to the passed result information, returning said information with the altered final roll.
+
+In:
+	%0 - Result in format <type> <skill>|<dbref>|<roll>
+	%1 - Mod amount
+	
+&func`addmod #1419=[elements(%0,1 2,|)]|[add(%1,[last(%0,|)])]
+
+
+----func`mulmod----
+
+Multiplies the passed result information by the specified amount, returning said information with the altered final roll.
+
+In:
+	%0 - Result in format <type> <skill>|<dbref>|<roll>
+	%1 - Mul amount
+	
+&func`mulmod #1419=[elements(%0,1 2,|)]|[mul(%1,[last(%0,|)])]
+
+----Debug----
+
+Reports information about the attack assuming the debug attribute is set to 1.
+
+&defend`debug #1419=[pemit(%#,[ansi(ch,--Defend Debug--)]%r[u(defend`debug`path)]Attack Type: [get(%#/%q<attackattrib>`type)][u(defend`debug`weaponmod)][u(defend`debug`luck)][u(defend`debug`type)]%r[u(defend`debug`result)]%r)]
+
+&defend`debug`path #1419=[switch([get(%#/%q<attackattrib>`type)],Drama,,Path: %q<path>[u(defend`debug`path`switch,%q<path>)]%r)]
+
+&defend`debug`path`switch #1419=[switch(%0,defend,[u(defend`debug`path`defend,%1)],counter,[u(defend`debug`path`counter,%1)],inter,[u(defend`debug`path`inter,%1)])]
+
+&defend`debug`path`defend #1419=%r%0Defend Speed Penalty: [mul([u(global`defendpenalty)],100)]%%
+
+&defend`debug`path`counter #1419=%r%0Defend Accuracy Mod: [mul([elements([u(func`getweapon,%q<counterweapon>)],3,|)],2)]%r%0Defend Counter Penalty: [mul([u(global`counterpenalty)],100)]%%
+
+&defend`debug`path`inter #1419=%r%0Defend Intercept Bonus: [u(global`interbonus)]
+
+&defend`debug`result #1419=[switch([get(%#/%q<attackattrib>`type)],Drama,[u(defend`debug`result`drama)],[u(defend`debug`result`%q<path>)])]
+
+&defend`debug`weaponmod #1419=[switch([get(%#/%q<attackattrib>`type)],drama,,%rAttack Accuracy Mod: [mul([elements([get(%#/%q<attackattrib>`weapon1)],3,|)],[get(%#/%q<attackattrib>`strength)])])]
+
+&defend`debug`luck #1419=[if(%q<luck>,%rDefend Luck Boost (+[u(global`luckbonus)]))][if([get(%#/%q<attackattrib>`luck)],%rAttack Luck Boost (+[u(global`luckbonus)]))]
+
+&defend`debug`type #1419=[switch([get(%#/%q<attackattrib>`type)],prec,%rAttack Precision Mod: [u(global`precmod)],unorth,%rAttack Unorthodox Mod: [u(global`unorthmod`vehicle)])]
+
+&defend`debug`result`evade #1419=Defender: %q<callingResult>%rAttacker: %q<targetResult>
+&defend`debug`result`defend #1419=Defender: %q<callingResult>%rAttacker: %q<targetResult>
+&defend`debug`result`counter #1419=Defender: %q<callingResult>%rAttacker: %q<targetResult>
+&defend`debug`result`inter #1419=Defender: %q<callingResult>%rAttacker: %q<targetResult>
+
+&defend`debug`result`drama #1419=[u(defend`debug`result`drama`1)][u(defend`debug`result`drama`2)][u(defend`debug`result`drama`3)]%rResults Register: %q<results>
+
+&defend`debug`result`drama`1 #1419=[u(defend`debug`result`drama`general,1)]%r
+
+&defend`debug`result`drama`2 #1419=[u(defend`debug`result`drama`general,2)]%r
+
+&defend`debug`result`drama`3 #1419=[u(defend`debug`result`drama`general,3)]
+
+&defend`debug`result`drama`general #1419=Result%0: [u(defend`debug`result`drama`methods,[elements(%q<methods>,%0)])][u(defend`debug`path`switch,[u(defend`debug`result`drama`methods,[elements(%q<methods>,%0)])],%t)]%r%tDefender: [elements(%q<results>,[sub([mul(%0,2)],1)],>)][if(%q<luck>,%r%tDefend Luck Bonus: [u(global`luckbonus)])]%r%tAttack Dramatic Bonus: [u(global`dramabonus`%0`[first([elements(%q<results>,[mul(%0,2)],>)])])][u(defend`debug`result`drama`atkmod,%0)]%r%tAttacker: [elements(%q<results>,[mul(%0,2)],>)]%r
+
+&defend`debug`result`drama`methods #1419=[switch(%0,e,Evade,E,Evade,d,Defend,D,Defend,c:*,Counter,C:*,Counter,i,Inter,I,Inter)]
+
+&defend`debug`result`drama`atkmod #1419=%r%tAttack Accuracy Mod: [mul([elements([get(%#/%q<attackattrib>`weapon%0)],3,|)],3)]
+
+&defend`debug`registers #1419=%rActive Registers: [listq()]

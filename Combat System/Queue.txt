@@ -1,0 +1,132 @@
+Name: Queue
+Programmer: Vincent Cross (Astrus)
+Date: June 2013
+
+Purpose:
+
+The queue as it relates to the MUSH's combat code is designed to display information about attacks a player has recently received and still needs to respond to. This file will outline the format of the Queue and the code necessary to produce the interface on the MUSH. It is intended that only the most recent 50 attacks over the past 24 hours will be stored. The idea is that when +defend is used and the command starts running through the list of attacks, it checks to see if it has expired. If it has, it wipes the attribute from the player. This is so the attributes don't keep adding and adding in number.
+
+The Queue is intended to display the following information:
+
+-The name of the player who made the attack
+-The type of attack (Normal, Dramatic, AOE, etc)
+-How long ago the attack was made
+-The name of the weapon(s) that were used as part of the attack.
+-The strength of the attack
+-If the attacker is using luck to boost their roll
+
+Each attack will be numbered in the queue, sorted by the most recent.
+
+The queue will be accessed by the following command:
+
++defend
+
+Simply shows the player's current queue of attacks.
+
++defend/clear
++defend/clear #
+
+Clears all/selected current attacks against you.
+
+
+----Queue Record Structure Example----
+
+Each record will be stored in an attribute using the second that they were performed. In the event multiple attacks were made against the same player in the same second, the seconds will be suffixed by -#. The sort() function will sort combatqueue`1360801109 before combatqueue`1360801109-2, so when the sort is reversed, the second attack will appear before the first, being more recent.
+
+#&combatqueue`1360801109 #619=#4
+#&combatqueue`1360801109`type #619=Normal
+#&combatqueue`1360801109`weapons #619=Gunpod
+#&combatqueue`1360801109`strength #619=3
+#&combatqueue`1360801109`weapon1 #619=R|Mauler REB-22 Energy Cannons|-3|HP|95|I|I|0|I
+#&combatqueue`1360801109`luck=1
+#&combatqueue`1360801109`vehicle=#926
+
+++++Code++++
+
+#1418 = Combat Commands Object
+#1419 = Combat Code Object
+
+Align numbers: 3 12 6 9 27 -8 -3
+
+----+defend----
+
+Registers:
+	reverselist - The list of queued attacks on a player, starting with the most recent
+	timesince - The formatted string of time since the currently referenced attack
+
+The +defend command simply displays the player's Queue, detailing the information about the attacks they have received and still need to respond to.
+
+
+&cmd_defend #1418=$+defend:think [u(#1419/defend`run)]
+
+&defend`run #1419=[pemit(%#,[u(defend`header)]%r[u(defend`body)]%r[u(defend`footer)])]
+
+&defend`header #1419=[header(Attack Queue)]%r[ansi(yh,[align(1 3 12 6 9 27 -8 -3 1,[ansi(bh,|)],#,Attacker,Type,When,Weapon,Level,Lck,[ansi(bh,|)])])]
+
+&defend`body #1419=[switch([strlen([u(func`reversequeue)])],0,[ansi(bh,|)][repeat(%b,76)][ansi(bh,|)],[align(1. 74 1.,[ansi(bh,|)],[u(defend`body2)],[ansi(bh,|)])])]
+
+&defend`body2 #1419=[iter(%q<reverselist>,[align(3 12 6 9 27 -8 -3,[ansi(yh,#@)],[name([get(%#/##)])],[get(%#/##`type)],[u(func`timesince,[before([after(##,`)],-)])],[u(%#/##`weapons)],[get(%#/##`strength)],[if([get(%#/##`luck)],Y)])],,%r)]
+
+&defend`footer #1419=[sep()]
+
+
+
+----+defend/clear----
+
+Simply clears all current attacks from your queue.
+
+&cmd_defend/clear #1418=$+defend/clear:think [u(#1419/defend`clear)][u(#1419/defend`clear`message)]
+
+&defend`clear #1419=[u(defend`clear`returnluck)][iter([lattr(%#/combatqueue`*)],[wipe(%#/[itext(0)])])]
+
+&defend`clear`message #1419=[pemit(%#,[ansi(wh,You have cleared all attacks from your +defend queue.)])]
+
+&defend`clear`returnluck #1419=[iter([lattr(%#/combatqueue`*)],[if([u(defend`clear`luckattack,[itext(0)])],[u(defend`clear`returnluck`run,[itext(0)])])])]
+
+&defend`clear`luckattack #1419=[or([match(Unorth Prec,[get(%#/%0`type)])],[get(%#/%0`luck)])]
+
+&defend`clear`returnluck`run #1419=[if([lte([add([get([get(%#/%0)]/xy`6`c)],1)],[get([get(%#/%0)]/xy`6)])],[attrib_set([get(%#/%0)]/xy`6`c,[add([get([get(%#/%0)]/xy`6`c)],1)])])]
+
+
+----+defend/clear #----
+
+Clears the selected attack from your queue.
+
+&cmd_defend/clear2 #1418=$+defend/clear *:think [setq(error,0)][u(#1419/defend`clear2,%0)]
+
+&defend`clear2 #1419=[setq(list,[revwords([sort([lattr(%#/combatqueue`*)])])])][u(defend`clear2`check,%0)]
+
+&defend`clear2`check #1419=[u(defend`clear2`check`isnum,%0)][u(func`cango,defend`clear2`check`ispos,%0)][u(func`cango,defend`clear2`check`isvalid,%0)][u(func`cango,defend`clear2`run,%0)]
+
+&defend`clear2`check`isnum #1419=[if([isnum(%0)],,[setq(error,22)])]
+
+&defend`clear2`check`ispos #1419=[if([lt(%0,1)],[setq(error,22)])]
+
+&defend`clear2`check`isvalid #1419=[if([gt(%0,[words(%q<list>)])],[setq(error,21)])]
+
+&defend`clear2`run #1419=[setq(clearattrib,[elements(%q<list>,%0)])][u(defend`clear2`returnluck)][u(defend`clear2`message,%0)][wipe(%#/%q<clearattrib>)]
+
+&defend`clear2`returnluck #1419=[switch([get(%#/%q<clearattrib>`type)],Unorth,[u(defend`clear2`returnluck`run)],Prec,[u(defend`clear2`returnluck`run)],[if([get(%#/%q<clearattrib>`luck)],[u(defend`clear2`returnluck`run)])])]
+
+&defend`clear2`returnluck`run #1419=[u(defend`clear`returnluck`run,%q<clearattrib>)]
+
+&defend`clear2`message #1419=[pemit(%#,[ansi([u(color`queue`message)],You have cleared [ansi([u(color`queue`name)],[name([get(%#/%q<clearattrib>)])])]'s [switch([get(%#/%q<clearattrib>`type)],AOE,AOE,Normal,Normal,H2H,H2H,Prec,Precision,Unorth,Unorthodox,Drama,Dramatic)] (#%0) attack from your +defend queue.)])]
+
+----func`reversequeue----
+Returns a list of queued attacks on the player who ran the command, sorted by the most recent. Also sets the same list to 'reverselist' register.
+
+&func`reversequeue #1419=[setr(reverselist,[revwords([sort([lattr(%#/combatqueue`*)])])])]
+
+
+----func`timesince----
+Used to figure out how long it has been since an attack was made. Takes the one parameter. Returns the string in format '##h##m' and sets it to register 'timesince'.
+
+Parameters:
+	%0: The time in secs() when the attack was made
+	
+Registers:
+	diff: The difference in seconds between the %0 parameter and the current secs()
+	
+&func`timesince #1419=[if([isnum(%0)],[u(func`timesince`calc,%0)],ERROR - Not a number)]
+
+&func`timesince`calc #1419=[setq(diff,[sub([secs()],%0)])][if([gt(%q<diff>,3600)],[div(%q<diff>,3600)]h)][div([mod(%q<diff>,3600)],60)]m

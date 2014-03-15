@@ -1,0 +1,141 @@
+Name: Outcome
+Programmer: Vincent Cross (Astrus)
+Date: July 2013
+
+Purpose:
+
+This file contains the code related to the integration of the damage system and the full combat system. Basically, it checks to see the outcome of the +attack & +defend and directs the code to perform the necessary functions of the damage system. It's very simple, only requiring three possible sections of code. One for normal results, one for dual criticals, one for dramatic attacks.
+
+This code will also be responsible for building the part of the message describing the damage done.
+
+Outcome Results:
+
+Defender Wins (defwin)
+Defender Crit Wins (defcs)
+Defender SuperCrit Wins (defsupwin)
+Defender Crit Loses (defcf)
+Attacker Wins (atkwin)
+Attacker Crit Wins (atkcs)
+Attacker SuperCrit Wins (atksupwin)
+Attacker Crit Loses (atkcf)
+Dual CritSuccesses (dualcs)
+Dual CritFails (dualcf)
+Draw (draw)
+
+----outcome----
+
+Splits the code off depending upon the outcome of the +defend.
+
+In:
+	%0 - The run number, used primarily for drama attacks and dual crits.
+	%1 - Either 'before' or 'after' to signify where in the +defend code this is called, before damage is inflicted or after.
+
+Registers In:
+	outcome - The outcome of the +defend
+	attackattrib - The attack information on the defender
+	
+&outcome #1419=[switch([get(%#/%q<attackattrib>`type)],drama,[u(outcome`drama,%0,%1)],[if([match(dualcf dualcs,%q<outcome>)],[u(outcome`dualcrits,%0,1,%1)],[u(outcome`normal,%q<outcome>,%q<path>,1,%1)])])]
+
+****Tests****
+
+think [setq(error,0,attackattrib,combatqueue`1375665122,path,evade,counterweapon,2,outcome,atkwin,callingresult,10,targetresult,30)][u(#1419/outcome,1,before)]%r%rDAMAGE%r%r[u(#1419/damage)]%r%rMESSAGE%r%r[u(#1419/outcome,1,after)]%r%q<outcomemessage>
+
+think [setq(error,0,attackattrib,combatqueue`1375665122,path,evade,counterweapon,2,outcome,dualcs,callingresult,10,targetresult,30)][u(#1419/outcome,1,before)][u(#1419/damage)][u(#1419/outcome,1,after)][u(#1419/outcome,2,before)][u(#1419/damage)][u(#1419/outcome,2,after)]%r%q<outcomemessage>
+
+----outcome`normal----
+
+Runs the damage code normally. The damage code takes into account whether it's a counter or not, so all this code has to do is call the damage code with the weapondata, defender dbref and defender vehicle dbref.
+
+In:
+	%0 - The outcome, usually %q<outcome> except for dramatics
+	%1 - The type of defense
+	%2 - The weapon to use, normally 1 except for dramatics
+	%3 - before/after damage has been done
+
+Registers In:
+	attackattrib - The attack information on the defender
+	
+Registers Out:
+	outcomemessage - The section of message dealing with damage.
+
+&outcome`normal #1419=[switch(%3,before,[if([cand([match(counter,%1)],[match(defwin defcs defsupwin atkcf draw,%0)])],[setq(counter,1,weapondata,[u(func`getweapon,%q<counterweapon>)],targetPilot,[get(%#/%q<attackattrib>)],targetVehicle,[get(%#/%q<attackattrib>`vehicle)])],[if([match(defcf atkwin atkcs atksupwin,%0)],[setq(weapondata,[get(%#/%q<attackattrib>`weapon%2)],targetPilot,%#,targetVehicle,[loc(%#)])])])],after,[u(outcome`message`normal`begin)])]
+
+----outcome`dualcrits----
+
+If the two players dual critical success, they both receive 25% of the attacker's damage. If they both dual crit fail, the both receive 75% of the attacker's damage. The damage code handles the damage alterations, this code simply sets the targets based upon the run count.
+
+In:
+	%0 - The number of the run. 1 to mean attacker, 2 to mean defender
+	%1 - The weapon to use. Usually 1, except for dramatics.
+	%2 - before/after damage has been done
+
+Registers In:
+	attackattrib - The attack information on the defender
+	
+Registers Out:
+	outcomemessage - The section of message dealing with damage.
+
+&outcome`dualcrits #1419=[switch(%0,1,[u(outcome`dualcrits`attacker,%1,%2)],2,[u(outcome`dualcrits`defender,%1,%2)])]
+
+&outcome`dualcrits`attacker #1419=[switch(%1,before,[setq(weapondata,[get(%#/%q<attackattrib>`weapon%0)],targetPilot,[get(%#/%q<attackattrib>)],targetVehicle,[get(%#/%q<attackattrib>`vehicle)],temppath,%q<path>,path,dualcrits)],after,[setq(path,%q<temppath>,outcomemessage,[u(outcome`message`dualcrits,[name([get(%#/%q<attackattrib>)])])])][unsetq(temppath finaldamage)])]
+
+&outcome`dualcrits`defender #1419=[switch(%1,before,[setq(weapondata,[get(%#/%q<attackattrib>`weapon%0)],targetPilot,%#,targetVehicle,[loc(%#)],temppath,%q<path>,path,dualcrits)],after,[setq(path,%q<temppath>,outcomemessage,%bso %q<outcomemessage> and [u(outcome`message`dualcrits,%N)].)][unsetq(temppath finaldamage)])]
+
+
+----outcome`drama---
+
+For a dramatic attacker, we have to potentially run the damage code three times.
+
+In:
+	%0 - The run count. 1, 2 or 3.
+	%1 - before/after damage has been done
+
+Registers In:
+	attackattrib - The attack information on the defender
+	outcomes - The three outcomes of the dramatic attack
+	methods - The methods of defense used against the attack
+	results - The results of the dramatic attacks in format <calling1>|<target1>><calling2>|<target2>><calling3>|<target3>
+	
+Registers Out:
+	dramaoutcomemessages - The three messages related to the outcomes of the three attacks.
+
+&outcome`drama #1419=[switch(%1,before,[setq(callingresult,[elements(%q<results>,%0,>)],targetresult,[elements(%q<results>,[add(1,%0)],>)])])][if([match(dualcf dualcs,[elements(%q<outcomes>,%0)])],[u(outcome`drama`dualcrits,%0,%1)],[u(outcome`drama`normal,%0,%1)])][switch(%1,after,[u(outcome`drama`messages)][unsetq(finaldamage)])]
+
+&outcome`drama`dualcrits #1419=[u(outcome`dualcrits,%0,%0,%1)]
+
+&outcome`drama`normal #1419=[u(outcome`normal,[elements(%q<outcomes>,%0)],[u(outcome`drama`defensetype,[elements(%q<methods>,%0)])],%0,%1)]
+
+&outcome`drama`defensetype #1419=[switch(%0,e,evade,d,defend,i,intercept,c*,counter[u(outcome`counter,%0)])]
+
+&outcome`drama`messages #1419=[if(%q<dramaoutcomemessages>,[setq(dramaoutcomemessages,%q<dramaoutcomemessages>|[if(%q<outcomemessage>,%q<outcomemessage>,null)])],[setq(dramaoutcomemessages,[if(%q<outcomemessage>,%q<outcomemessage>,null)])])][unsetq(outcomemessage)]
+
+&outcome`counter #1419=[setq(counterweapon,[after(%0,:)])]
+
+
+----outcome`message----
+
+This builds the individual section of the +defend results message that pertains to damage inflicted.
+
+&outcome`message`normal`begin #1419=[if(%q<finaldamage>,[setq(outcomemessage,[u(outcome`message`normal)])])]
+
+&outcome`message`normal #1419=%bfor [itemize([iter(%q<finaldamage>,[after([itext(0)],:)] to [before([itext(0)],:)],|,|)],|)].
+
+&outcome`message`dualcrits #1419=[ansi([u(color`defend`name)],%0)] receives [itemize([iter(%q<finaldamage>,[after([itext(0)],:)] to [before([itext(0)],:)],|,|)],|)]
+
+
+----outcome`triggerdamage----
+
+Works out if the +defend code should trigger the damage code.
+
+In:
+	%0 - The run number.
+
+Registers In:
+	outcome - The outcome of the attack
+	outcomes - Outcomes of the attack if dramatic
+	path - The defense type
+
+Out:
+	1/0
+
+&outcome`triggerdamage #1419=[if([cand([if(%q<outcomes>,[match([elements(%q<methods>,%0)],c:*)],[match(counter,%q<path>)])],[match(defwin defcs defsupwin atkcf draw,[if(%q<outcomes>,[elements(%q<outcomes>,%0)],%q<outcome>)])])],1,[if([match(defcf atkwin atkcs atksupwin dualcs dualcf,[if(%q<outcomes>,[elements(%q<outcomes>,%0)],%q<outcome>)])],1,0)])]

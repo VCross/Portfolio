@@ -1,0 +1,256 @@
+Name: Damage
+Programmer: Vincent Cross (Astrus)
+Date: July 2013
+
+Purpose:
+
+Decided to separate ammo and damage when I scrapped the existing damage code.
+
+In regards to damage, it is about using the weapon data to inflict damage against the target. This will also involve Armor rolls, armor mitigation, and increased/decreased damage in special circumstances. Here is more information on armor mitigation and damage bonus:
+
+Ah! Right, as for armor mitigation I finally got my wants sorted out for that under this system. First off the static armor mitigation remains as is, so whatever the vehicle stat is at, that's the amount the armor reduces damage by default (unless of course they try to dodge, at which point it gets cut to 1/4 of its value). Now as for bonus mitigation if they choose to defend while in battroid or gerwalk, do an armor check and then divide the result by 2. That will be the bonus armor mitigation, which cannot exceed 90% that ought to handle the possibility of ships going too far beyond this. We'll use a similar check on foot for when we get around to that part!
+
+Also with this in place I wanted to tweak how we did hit quality. Before I had done some stuff up to describe how the damage varies a bit but with the new code what I'd rather do is something a little cleaner. The idea will be instead to take the difference between the winning and losing roll when the attacker succeeds and make that into the damage bonus. So if the attacker beats the defender by only 2 then his weapons do 2% more damage (before armor of course), if it's a difference of say the attacker rolling a 30 and the defender getting 15, then there'd be a 15% damage bonus. 
+
+On a crit success for the attacker they get an automatic 50% damage boost. If the defender crit fails there's a 10% damage boost. If somehow (1 in 900 chance) that both happen at the same time we'll name that a "Super Critical" only for the sake of indicating something crazy rare just happened. The damage boost cannot exceed 60%
+
+Degredation: Your armor will thin out over time. Any hit that does 150 damage or higher before mitigation will take 2 points off of your armor. This continues until your armor has reached half its original value at which point it can't degrade any further. Armor can naturally be repaired out of combat.
+
+
+
+****Damage****
+
+This section contains the code related to inflicting damage upon a target.
+
+Some notes about armor:
+
+- Whatever the vehicle's armor stat is at, that's the base percentage of armor mitigation.
+- When defending in battroid or gerwalk mode, perform an additional armor check and add that to the mitigation.
+- Armor mitigation maxes at 90%
+- Evade action results in only 25% of base armor mitigation.
+- If the total damage exceeds 150, subtract 2 from the target vehicle's current armor stat
+
+Some notes about damage:
+
+- Damage is determined by the damage value of the weapon used multiplied by the strength of the attack: <weapondamage> x <strength>
+- Additional damage is added for difference between the final results of the two parties. In the rare case of someone winning with a lower result (only crits) then treat it as a 0% bonus.
+- Attack crit success: 50% damage boost
+- Defender crit fail: 10% damage boost
+- Super crit: 60% damage boost
+- Damage boost cannot exceed 60%
+- Unorthodox attacks do 2x damage (after above bonuses)
+- If the attacker fails their unorthodox gscheck, do 2x damage to them (no bonuses)
+- Precision attacks do 5x damage (after above bonuses)
+- AOE attacks do 1x damage split across all targets (after above bonuses)
+- Counter: 0.5x damage (after above bonuses)
+- Dual CritSuccess: 25% attacker damage to both (no bonuses)
+- Dual CritFail: 75% attacker damage to both (no bonuses)
+
+Outcome Results:
+
+Defender Wins (defwin)
+Defender Crit Wins (defcs)
+Defender SuperCrit Wins (defsupwin)
+Defender Crit Loses (defcf)
+Attacker Wins (atkwin)
+Attacker Crit Wins (atkcs)
+Attacker SuperCrit Wins (atksupwin)
+Attacker Crit Loses (atkcf)
+Dual CritSuccesses (dualcs)
+Dual CritFails (dualcf)
+Draw (draw)
+
+----damage----
+
+The main damage code. Runs everything related to the damage system.
+	
+Registers In:
+	weapondata - The weapondata to use
+	targetPilot - The target pilot dbref
+	targetVehicle - The target vehicle dbref
+	attackattrib - The attribute containing attack information.
+
+&damage #1419=[if(%q<targetPilot>,[u(damage`debug)][setq(temp,[u(damage`amount,%q<weapondata>)])][switch([get(%#/%q<attackattrib>`type)],AOE,[u(damage`debug`aoe)][setq(temp,[fdiv(%q<temp>,[get(%#/%q<attackattrib>`targets)])])])][u(damage`inflict,%q<weapondata>,[round([sub(%q<temp>,[mul(%q<temp>,[u(damage`armor)])])],0)][unsetq(temp)])][u(damage`armordegredation,%q<weapondata>)][u(damage`debug`finaldamage)])]
+
+
+****Tests****
+
+think [attrib_set(#926/yz`1`c,2000)][attrib_set(#926/yz`2`c,50)][attrib_set(#926/yz`4`c,50)][setq(error,0,attackattrib,combatqueue`1374726498,path,evade,outcome,atkwin,callingresult,10,targetresult,30)][u(#1419/damage,[get(%#/%q<attackattrib>`weapon1)],%#,[loc(%#)])]
+
+
+----damage`setup----
+
+Sets up everything that will be used during damage`inflict, damage`amount and damage`armor.
+
+In:
+	%0 - The weapondata to be used
+	%1 - The target pilot
+	%2 - The target vehicle
+
+Registers In:
+	attackattrib - The attack attribute on the defender
+	path - The type of defense
+	outcome - The result of the attack/defend
+	counter - If 1, then it was a successful counter
+	
+Registers Out:
+
+	targetPilot - The pilot receiving the damage
+	targetVehicle - The vehicle receiving the damage
+	weaponData - The weapondata to be used throughout the damage system
+
+	
+&damage`setup #1419=[if(%q<counter>,[setq(weapondata,%0,targetPilot,[get(%#/%q<attackattrib>)],targetVehicle,[get(%#/%q<attackattrib>`vehicle)])],[setq(weapondata,%0,targetPilot,%1,targetVehicle,%2)])]
+
+
+----damage`amount----
+
+This code is used to determine the amount of damage that the attacker sends. It needs a lot of stuff.
+
+In:
+	%0 - Weapondata to be used
+
+Registers:
+	attackattrib - The attribute of the attack on the defender
+	callingresult - The result of the defender
+	targetresult - The result of the attacker
+	outcome - The outcome of the attack & defense
+	counter - If 1, then it was a successful counter
+	
+	bonus - The amount of bonus damage based upon the compare results, attack type, and any crits
+	weapondamage - The total weapon damage based upon base weapon damage and strength of attack
+
+Out:
+	A value representing the amount of damage to inflict after damage bonuses but before armor mitigation.
+	
+
+&damage`amount #1419=[mul([u(damage`amount`weapon,%0)],[u(damage`amount`bonus)],[u(damage`amount`attacktype)],[u(damage`amount`dualcrit)])][u(damage`debug`amount)][unsetq(bonus weapondamage)]
+
+&damage`amount`bonus #1419=[if([match(dualcs dualcf,%q<outcome>)],1,[u(damage`amount`bonus`initial)][setr(bonus,[if([gte(%q<bonus>,[u(global`damage`amount`bonusmax)])],1.[u(global`damage`amount`bonusmax)],[add(1,[fdiv(%q<bonus>,100)])])])])]
+
+&damage`amount`weapon #1419=[setr(weapondamage,[mul([elements(%0,5,|)],[get(%#/%q<attackattrib>`strength)])])]
+
+&damage`amount`bonus`initial #1419=[setq(bonus,[add([u(damage`amount`results)],[u(damage`amount`crits)])])]
+
+&damage`amount`results #1419=[if(%q<counter>,[setq(temp,[sub([last(%q<callingresult>,|)],[last(%q<targetresult>,|)])])],[setq(temp,[sub([last(%q<targetresult>,|)],[last(%q<callingresult>,|)])])])][if([lte(%q<temp>,0)],0,%q<temp>)][unsetq(temp)]
+
+&damage`amount`crits #1419=[if([match(atkcs defcf atksupwin defsupwin defcs atkcf,%q<outcome>)],[u(global`damage`amount`%q<outcome>)],0)]
+
+&damage`amount`attacktype #1419=[if([match(dualcs dualcf,%q<outcome>)],1,[switch([get(%#/%q<attackattrib>`type)],unorth,[if(%q<counter>,1,[u(damage`debug`unorth)][u(global`damage`amount`unorthmul)])],prec,[if(%q<counter>,1,[u(damage`debug`prec)][u(global`damage`amount`precmul)])],1)])]
+
+&damage`amount`dualcrit #1419=[switch(%q<outcome>,dualcs,[u(global`damage`amount`dualcs)],dualcf,[u(global`damage`amount`dualcf)],1)]
+
+----damage`armor----
+
+This code is used to determine the amount of armor mitigation that the defender receives.
+
+Registers In:
+	targetVehicle - The target vehicle being attacked
+	targetPilot - The target pilot being attacked
+	path - The type of defense
+	
+Out:
+	Returns a decimal value corresponding to the percentage of armor mitigation, maxing at 0.90
+	
+&damage`armor #1419=[setq(temp,[add([fdiv([mul([get(%q<targetVehicle>/xy`a`c)],[switch(%q<path>,evade,[u(global`damage`armor`evadepenalty)],1)])],100)],[switch(%q<path>,defend,[fdiv([last([u(check,[if([get(%q<targetVehicle>/carrier)],416,315)],%q<targetPilot>)],|)],100)],0)])])][if([gte(%q<temp>,[u(global`damage`armor`mitigationmax)])],[setq(temp,[u(global`damage`armor`mitigationmax)])])]%q<temp>[u(damage`debug`armor)][unsetq(temp)]
+
+
+----damage`inflict----
+
+This is the main code to inflict damage against a target. It works out how to spread the damage out across the various parts of the vehicle/pilot. Then subtracts the damage from those part totals.
+
+In:
+	%0 - The weapondata being used
+	%1 - The amount of damage to inflict.
+	
+Out:
+	If KOed, outputs a KO message to the room.
+
+Registers:
+	part - The xy value of the part to inflict damage to
+	subvalue - The result of subtracting the damage from the current value of the part
+	
+
+&damage`inflict #1419=[setq(part,[u(damage`inflict`attrib,[u(damage`type,%0)])])][if([lte([setr(subvalue,[sub([get([switch(%q<part>,xy`8,%q<targetPilot>,%q<targetVehicle>)]/%q<part>`c)],%1)])],0)],[u(damage`inflict`finaldamage,%1)][attrib_set([switch(%q<part>,xy`8,%q<targetPilot>,%q<targetVehicle>)]/%q<part>`c,0)][if([and(%q<subvalue>,[u(damage`inflict`kocheck,[switch(%q<part>,xy`8,%q<targetPilot>,%q<targetVehicle>)])])],[u(damage`inflict,%0,[mul(%q<subvalue>,-1)])])],[u(damage`inflict`finaldamage`end,%1)][attrib_set([switch(%q<part>,xy`8,%q<targetPilot>,%q<targetVehicle>)]/%q<part>`c,%q<subvalue>)])][unsetq(part subvalue)]
+
+&damage`inflict`attrib #1419=[switch(%0,HP,xy`7,SP,xy`8,Hull,yz`1,Barrier,yz`2,FAST,yz`4)]
+
+&damage`inflict`part #1419=[switch(%0,xy`7,HP,xy`8,SP,yz`1,Hull,yz`2,Barrier,yz`4,FAST)]
+
+&damage`inflict`finaldamage #1419=[setq(finaldamage,[if(%q<finaldamage>,[insert(%q<finaldamage>,-1,[u(damage`inflict`part,%q<part>)]:[sub(%0,[fdiv(%q<subvalue>,-1)])],|)],[u(damage`inflict`part,%q<part>)]:[sub(%0,[fdiv(%q<subvalue>,-1)])])])]
+
+&damage`inflict`finaldamage`end #1419=[setq(finaldamage,[if(%q<finaldamage>,[insert(%q<finaldamage>,-1,[u(damage`inflict`part,%q<part>)]:%0,|)],[u(damage`inflict`part,%q<part>)]:%0)])]
+
+&damage`inflict`kocheck #1419=[if([and([not([get(%0/%q<part>`c)])],[match(xy`7 xy`8 yz`1,%q<part>)])],0[u(damage`komessage)],1)][u(damage`inflict`fastjettison)]
+
+&damage`inflict`fastjettison #1419=[if([cand([match(yz`4,%q<part>)],[not([get(%q<targetVehicle>/%q<part>`c)])])],[u(damage`inflict`fastjettison`run)])]
+
+&damage`inflict`fastjettison`run #1419=[null([iter([last([get(%q<targetVehicle>/yz`3)],|)],[attrib_set(%q<targetVehicle>/[before([itext(0)],>)]`c,[sub([get(%q<targetVehicle>/[before([itext(0)],>)]`c)],[after([itext(0)],>)])])])])][attrib_set(%q<targetVehicle>/wx`f)][attrib_set(%q<targetVehicle>/yz`3)][attrib_set(%q<targetVehicle>/yz`4`c)][attrib_set(%q<targetVehicle>/yz`4)][u(damage`inflict`fastjettison`message)]
+
+&damage`inflict`fastjettison`message #1419=[pemit(%#,[ansi([u(color`damage`fastjettison)],Your FAST Pack has been destroyed.)])]
+
+&damage`komessage #1419=[remit([u(check`result`destination)],[ansi([u(color`damage`koed)],[if([match(xy`7 xy`8,%q<part>)],[name(%q<targetPilot>)] has been KOed.,[name(%q<targetPilot>)]'s vehicle has been KOed.)])])]
+
+
+----damage`type----
+
+Used to determine which type of damage to inflict on the target. Weapons have to types of damage, HP and SP. For HP damage, if the target has a barrier and/or fast pack, the target will make a medium piloting (starship operation for capships) check to see if they can apply the damage to one of those, with a priority of barrier over fast pack. If they fail, it goes straight to the hull. For SP damage, the weapon's damage bypasses all the above and hits the target pilot directly.
+
+In:
+	%0 - The weapondata being used
+	
+Registers:
+	targetVehicle - The target vehicle dbref.
+	targetPilot - The dbref of the target pilot.
+	
+Out:
+	HP, SP, Hull, FAST, Barrier - The part of the vehicle/person to inflict damage to.
+
+&damage`type #1419=[setr(temp,[u(damage`type`run,%0)])][u(damage`debug`type)][unsetq(temp)]
+
+&damage`type`run #1419=[if([or([cand([hasattrval(%q<targetVehicle>,yz`2`c)],[gt([get(%q<targetVehicle>/yz`2`c)],0)])],[cand([hasattrval(%q<targetVehicle>,yz`4`c)],[gt([get(%q<targetVehicle>/yz`4`c)],0)])])],[u(damage`type`vehicle`pilotcheck,%0)],[switch([elements(%0,4,|)],SP,SP,Hull)])]
+
+&damage`type`vehicle`pilotcheck #1419=[switch([elements(%0,4,|)],SP,SP,[if([u(damage`type`vehicle`pilotcheck`barrier)],Barrier,[if([u(damage`type`vehicle`pilotcheck`FAST)],FAST,Hull)])])]
+
+&damage`type`vehicle`pilotcheck`barrier #1419=[if([cand([hasattrval(%q<targetVehicle>,yz`2`c)],[gt([get(%q<targetVehicle>/yz`2`c)],0)])],[gte([last([u(check,[if([get(%q<targetVehicle>/carrier)],416,315)],%q<targetPilot>)],|)],[u(global`gscheck`n`sk)])],0)]
+
+&damage`type`vehicle`pilotcheck`FAST #1419=[if([cand([hasattrval(%q<targetVehicle>,yz`4`c)],[gt([get(%q<targetVehicle>/yz`4`c)],0)])],[gte([last([u(check,[if([get(%q<targetVehicle>/carrier)],416,315)],%q<targetPilot>)],|)],[u(global`gscheck`n`sk)])],0)]
+
+----damage`armordegredation----
+
+This code checks to see if the final damage inflicted on the target is greater than 150. If it is, subtracts 2 points from the target vehicle's current armor.
+
+In:
+	%0 - Weapondata
+	
+Registers In:
+	targetVehicle - The dbref of the target vehicle
+	finaldamage - The final amount of damage inflicted.
+	
+&damage`armordegredation #1419=[switch([elements(%0,4,|)],SP,,[u(damage`armordegredation`run)])]
+
+&damage`armordegredation`run #1419=[if([gt([u(damage`armordegredation`total)],[u(global`damage`armordegredationtrip)])],[attrib_set(%q<targetVehicle>/xy`a`c,[sub([get(%q<targetVehicle>/xy`a`c)],2)])])][unsetq(temp)]
+
+&damage`armordegredation`total #1419=[setq(temp,0)][iter(%q<finaldamage>,[setq(temp,[add(%q<temp>,[after([itext(0)],:)])])],|)]%q<temp>
+
+----damage`debug----
+
+Holds the code related to debugging the damage system.
+
+&damage`debug #1419=[if([u(debug`damage)],[pemit(%#,[ansi(rh,--Damage Debug--)]%r[u(damage`debug`setup)])])]
+
+&damage`debug`setup #1419=Target Pilot: %q<targetPilot>%rTarget Vehicle: %q<targetVehicle>[if(%q<counter>,%rCounter Success: Yes)]
+
+&damage`debug`finaldamage #1419=[if([v(debug`damage)],[pemit(%#,Final Damage: %q<finaldamage>)])]
+
+&damage`debug`amount #1419=[if([v(debug`damage)],[pemit(%#,Weapon Damage: %q<weapondamage>%rBonus Damage: %q<bonus>[switch(%q<outcome>,dualcs,%rDual CS: [u(GLOBAL`DAMAGE`AMOUNT`DUALCS)],dualcf,%rDual CF: [u(GLOBAL`DAMAGE`AMOUNT`DUALCF)])])])]
+
+&damage`debug`armor #1419=[if([v(debug`damage)],[pemit(%#,Armor Mitigation: %q<temp>)])]
+
+&damage`debug`type #1419=[if([v(debug`damage)],[pemit(%#,Damage To: %q<temp>)])]
+
+&damage`debug`unorth #1419=[if([v(debug`damage)],[pemit(%#,Unorthodox Multiplier: [u(global`damage`amount`unorthmul)])]
+
+&damage`debug`prec #1419=[if([v(debug`damage)],[pemit(%#,Precision Multiplier: [u(global`damage`amount`precmul)])]
+
+&damage`debug`aoe #1419=[if([v(debug`damage)],[pemit(%#,AOE Targets: [get(%#/%q<attackattrib>`targets)])]

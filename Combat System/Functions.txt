@@ -1,0 +1,21 @@
+Name: Functions
+Programmer: Vincent Cross (Astrus)
+Date: May 2013
+
+Purpose:
+
+This file contains all the general functions used by the combat system. They all have varied purposes and are intended to make the coding easier.
+
+
+++++Code++++
+
+
+----func`cango----
+
+A function that checks to see if there are any current lingering errors that need to be reported and halt the progress of the code. If there are none, runs the passed attribute.
+
+In:
+	%0 - The attribute to run if there are no errors.
+	%1 -> %n - Arguments to pass through to the next attribute (ccurently max 5)
+
+&func`cango #1419=[switch(%q<error>,error,,0,[u(%0,%1,%2,%3,%4,%5)],[u(#1419/error,%q<error>)][setq(error,error)])]

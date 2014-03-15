@@ -1,0 +1,40 @@
+Weapon Design:
+
+--Initial Notes--
+
+All vehicles will have a built in H2H weapon. If this isn't suitable for a vehicle in some way, can just use a 0 damage amount and name it 'Unusued' or something.
+
+
+--Design--
+
+Type|Name|Accuracy|Damage Type|Damage|Max Ammo|Current Ammo|Ammo Use|Internal/Hardpoint
+
+
+Type: R (Ranged) / M (Missile) / C (Melee) / H (H2H)
+
+Name: Whatever you want (about 22 chars max)
+
+Accuracy: Whole number, positive or negative. Remember that higher attack levels multiply this number.
+
+Damage Type: Right now all we've really got is 'HP'. Though I imagine this'll be expanded further in the future.
+
+Damage: Base damage amount.
+
+Max Ammo, Current Ammo: In the case of weapons without ammo (energy, melee) use I for infinite.
+
+Ammo Use: How much ammo a level 1 attack uses. In the case of weapons without ammo, MUST BE 0
+
+Internal/Hardpoint: I for internal. Nothing else.
+		    H works with nothing else too, but also can be expanded.
+H:<space seperated list>
+
+H:XY`C>-1 (reduces vehicle speed by 1)
+H:XY`C>-1 XY`E>-2 (reduces vehicle speed by 1, stealth by 2)
+
+XY`A: Armor
+XY`B: Targeting
+XY`C: Speed
+XY`D: Intercept
+XY`E: Stealth
+XY`F: Sensors
+XY`G: Spritia Amp.

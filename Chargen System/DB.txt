@@ -1,0 +1,28 @@
+Filename: DB
+Date: March 2014
+Programmer: Vincent Cross
+
+Purpose:
+
+A master list of attributes that make up the new Chargen database.
+
+-- Basic
+
+db`# - Contacts the date the application was last active.
+db`#`status - The overall status of the application. NS: Not submitted, S: Submitted, R: Returned, A: Approved
+
+!--
+
+-- Room 2 - Personal Information
+
+db`#`2`status - The status for the individual section. C: Complete, I: Incomplete, R: Revisions Required
+db`#`2`new - 0/1: Whether they're a new player to the MUSH or not.
+db`#`2`alts - A list of current alts.
+db`#`2`email - An email address.
+db`#`2`name - The player's name or well known alias.
+db`#`2`age - The player's age.
+db`#`2`rped - A description of previous RP experience.
+db`#`2`consent - A description of consent-based role-playing.
+db`#`2`source - Where the player heard about New Horizon.
+
+!--

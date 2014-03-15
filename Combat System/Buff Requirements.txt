@@ -1,0 +1,53 @@
+Buff Mechancis:
+Hookay let's see if I can stay coherent long enough to type this all out!
+
+So first up with regards to Buff/Debuff stat values. We're gonna go with a static buff bonus based on the player's skill level. We've got such small tolerances to work to it'll just be easier overall and I don't think it'll be too problematic. A performer can buff in one of two manners. Either via Spirit + a Performance Skill (Musical Instruments, Singing, dancing), or through Spirit + Enhance + Amp
+Spirit + Performance works thusly: for every level of Spirit and the chosen performance skill the buff value goes up by .25. This means the max buff on a performance skill is 5
+Spirit + Enhance + Amp works in a similar manner. The buff value is .25 for every level of Spirit + Enhance, with Amp adding .1 for every level
+These values are the same regardless of whether its a buff or a debuff so no worries of anything funky there!
+For whether or not a buff works, it's a simple matter of rolling a Normal Diff gscheck with either the performance skill, or Enhance + Amp
+For a debuff, if someone is using a performance skill one part is independant (tagging the target with a speaker pod or some other way to force the broadcast, so don't need to worry about coding this). After that it's a roll of the Performers perfromance skill + spirit against the defender's Spirit stat. If they win the debuff is applied.
+For S.Enhance, consider it akin to a weapon with no accuracy bonus/penalty. Since the only option would be to evade the defender automatically does a compare using speed vs. the performer's S. Enhance + Amp. If the defender loses then the debuff is applied.
+Assuming the buff/debuff check succeeds then a d6 is rolled to pick the stat that is buffed/debuffed:
+1 - Strength
+2 - Dexterity
+3 - Endurance
+4 - Intelligence
+5 - Spirit
+6 - Luck (Buffs all stats)
+The S.Enhance buff works in the same manner save two rolls are made and two stats are affected (yes they can stack)
+Buff/Debuff duration is 3 turns (or 3 +attacks for simplicity) in the event of a crit success 1 turn is added for a total of 4. We'll probably want something to manually clear a buff/debuff in case someone isn't +attacking
+A target can only have one buff/debuff at a time, so you can't take 3 debuffs before the first one wears out. Likewise, buffs cancel debuffs and vice versa.
+I'd also like to include an AOE buff/debuff, similar to the AOE +attack it's up to 4 targets, with the buff bonus divided between the targets. I'd like this ability limited solely to cap-ships. This one's bottom of the priority list, however. If it'll be a lot of work just focus on getting single target buff/debuffs up and running and we can revisit this later.
+
+<Admin> Astrus says, "How do you wanna handle dual critsuccs/critfails and
+ super crits for debuffs?"
+<Admin> Xeero says, "ooooone sec"
+<Admin> Xeero says, "Hmm...have it add... +1 for a crit success/crit fail and
+ +1.5 for a super crit"
+<Admin> Xeero says, "that's on top of whatever the buffer would normally do of
+ course"
+<Admin> Astrus says, "Okay, but what if both players get a crit success/fail,
+ how do you want to handle the hit/miss?"
+<Admin> Xeero says, "Priority goes to the defender"
+
+<Admin> Astrus says, "Hey Xee, still a little confused about crits on debuffs... So just to confirm, Attacker/Defender: CS/CF - Super Crit, add +1.5 to the stat debuff amount (should this be in addition to the +1 duration of the CS?). CS/CS - Defender wins, no debuff. CF/CS - Defender wins. CF/CF - Defender wins. CS/# - Add +1 duration to debuff. #/CF - Defender wins."
+<Admin> Xeero says, "That...looks about right to me yes, along with the duration bump for the super-crit"
+
+<Admin> Astrus says, "Xee, when, say, replacing a buff with a debuff... Do you want to outright clear the buff and apply a full debuff, or compare the durations of the two and apply the difference?"
+<Admin> Xeero hrms, "Apply the diff. I'd originally planned for them to just straight cancel one another but doing the difference seems better
+
+<Admin> Astrus says, "Xee, which actions do you want to count to a buff/debuff's duration? Obviously there's +check, +compare, +gscheck, +attack and +defend... But there are also other commands out there that use stats, such as +buff, +debuff, +link, +initiative."
+<Admin> Xeero says, "hmm"
+<Admin> Astrus says, "Also, possibly some of the engineer stuff..."
+<Admin> Xeero says, "Hmmm..."
+<Admin> Xeero says, "Yeah let's do the whole mess"
+<Admin> Xeero says, "As for engineer stuff *drums fingers*"
+<Admin> Astrus says, "Which is mostly just +tune at this point."
+<Admin> Xeero says, "Is it possible for the +tune stuff to just bypass that altogether?"
+<Admin> Astrus says, "As in don't tick duration, or ignore buffs alltogether?"
+<Admin> Xeero says, "ignore buffs/debuffs"
+<Admin> Xeero says, "Since +tune is strictly out of combat"
+<Admin> Astrus says, "Yeah, I could have the command use the base value of stats, rather than their current value which is what the buffs/debuffs alter."
+<Admin> Astrus says, "(I think it does that already)"
+<Admin> Xeero thumbsup

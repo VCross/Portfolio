@@ -1,0 +1,92 @@
+Name: +gscheck
+Programmer: Vincent Cross (Astrus)
+Date: May 2013
+
+Purpose:
+
+A +gscheck allows a player or scenerunner to make a check of their/another player's selected stat/skill/vstat and compare it against a global threshold for success. Essentially the same as a +compare, but instead of comparing two player's results, compares just one against the global success.
+
+Process is as follows:
+
+1) Do a +check for the targetted player's stat/skill/vstat
+2) Compare against the global success threshold
+3) Print message.
+
+
+++++Code++++
+
+----cmd_+gscheck----
+
+There are two forms to this command. The first just does a gscheck on yourself. The second does a gscheck on the target player. Eg:
+
++gscheck 3:Computers
++gscheck Astrus=3:Computers
+
+There will also need to be the personal switch:
+
++gscheck/personal Astrus=3:Computers
+
+
+&cmd_+gscheck #1418=$+gscheck *:think [setq(commandrun,1,error,0)][u(#1419/gscheck,[decompose(%0)])];think [u(#1419/func`cango,#1419/gscheck`result)];think [u(#1419/func`cango,#1419/duration`run,gscheck,%q<targetDbref>)]
+
+&cmd_+gscheck2 #1418=$+gscheck/personal *:think [setq(commandrun,1,error,0)][u(#1419/gscheck,[decompose(%0)])];think [u(#1419/func`cango,#1419/gscheck`result,P)];think [u(#1419/func`cango,#1419/duration`run,gscheck,%q<targetDbref>)]
+
+----gscheck----
+
+The starting run of the gscheck command. Utilises various code from the other commands to run.
+
+In:
+	%0 - The argument of the command, either <target>=<difficulty>:<skill> or just <difficulty>:<skill>
+
+&gscheck #1419=[u(gscheck`regmatch,%0)][u(func`cango,gscheck`run)]
+
+&gscheck`regmatch #1419=[if([regmatch(%0,(.+)=(ve|VE|Ve|vE|e|E|n|N|h|H|vh|VH|vH|Vh|i|I)\:(.+), 1:targetPlayer 2:difficulty 3:selection)],,[if([regmatch(%0,(ve|VE|Ve|vE|e|E|n|N|h|H|vh|VH|vH|Vh|i|I)\:(.+), 1:difficulty 2:selection)],[setq(targetDbref,%#)],[setq(error,12)])])]
+
+&gscheck`run #1419=[if(%q<targetPlayer>,[u(gscheck`check)])]
+
+&gscheck`check #1419=[u(compare`check)]
+
+
+----gscheck`result----
+
+Compares the +check against the global success values, then prints out the result.
+
+In:
+	%0 - Special override
+		P - Personal override
+	
+&gscheck`result #1419=[setq(y,[u(#1419/check,%q<selection>,%q<targetDbref>,%0)])][u(func`cango,gscheck`result`compare,%q<y>,%0)][unsetq(y)]
+
+
+%0 - Result
+%1 - Special override
+
+&gscheck`result`compare #1419=[switch(%q<roll>,1,[u(gscheck`result`crit,%0,f,%1)],[u(global`check`dice`sides)],[u(gscheck`result`crit,%0,s,%1)],[if([gte([last(%0,|)],[u(global`gscheck`%q<difficulty>`[first(%0)])])],[u(gscheck`result`win,%0,%1)],[u(gscheck`result`lose,%0,%1)])])]
+
+
+%0 - Result
+%1 - Special Override
+
+&gscheck`result`win #1419=[remit([u(check`result`destination)],[ansi([u(color`gscheck`message)],[u(gscheck`result`begin,%0)]%b[u(check`result`[first(%0)],%0,,%1)]%b[u(gscheck`result`end,%0,win)])])]
+
+
+%0 - Result
+
+&gscheck`result`begin #1419=[ansi([u(color`gscheck`name)],%N)] does a [u(gscheck`result`difficulty)] global skill check[if([match(%#,[elements(%0,2,|)])],,%bfor [ansi([u(color`gscheck`name)],[name([elements(%0,2,|)])])])].
+
+&gscheck`result`end #1419=[ansi([u(color`gscheck`name)],[name([elements(%0,2,|)])])] [switch(%1,win,is successful.,lose,fails.)]
+
+&gscheck`result`difficulty #1419=[switch(%q<difficulty>,ve,[ansi([u(color`gscheck`ve)],Very Easy)],e,[ansi([u(color`gscheck`e)],Easy)],n,[ansi([u(color`gscheck`n)],Normal)],h,[ansi([u(color`gscheck`h)],Hard)],vh,[ansi([u(color`gscheck`vh)],Very Hard)],i,[ansi([u(color`gscheck`i)],Impossible)])]
+
+
+%0 - Result
+%1 - Special Override
+
+&gscheck`result`lose #1419=[remit([u(check`result`destination)],[ansi([u(color`gscheck`message)],[u(gscheck`result`begin,%0)]%b[u(check`result`[first(%0)],%0,,%1)]%b[u(gscheck`result`end,%0,lose)])])]
+
+
+%0 - Result
+%1 - s(uccess) or f(ail)
+%2 - Special override
+
+&gscheck`result`crit #1419=[remit([u(check`result`destination)],[ansi([u(color`gscheck`message)],[u(gscheck`result`begin,%0)]%b[u(check`result`[first(%0)],%0,,%2)]%b[ansi([u(color`gscheck`name)],[name([elements(%0,2,|)])])] gets a [switch(%1,s,[ansi([u(color`cs)],Critical Success!)],f,[ansi([u(color`cf)],Critical Fail!)])])])]

@@ -1,0 +1,43 @@
+Name: +debug
+Programmer: Vincent Cross (Astrus)
+Date: May 2013
+
+Outline:
+
+Tells the combat system whether to report debug information.
+
+----+debug----
+
+&cmd_+debug #99=$+debug:think [attrib_set(#1419/debug,[not([get(#1419/debug)])])][attrib_set(#1419/debug`+check,[get(#1419/debug)])][attrib_set(#1419/debug`+defend,[get(#1419/debug)])][attrib_set(#1419/debug`damage,[get(#1419/debug)])][attrib_set(#1419/debug`compare,[get(#1419/debug)])][attrib_set(#1419/debug`attack,[get(#1419/debug)])][attrib_set(#1419/debug`buff,[get(#1419/debug)])][attrib_set(#1419/debug`results,[get(#1419/debug)])][pemit(%#,[ansi(wh,[name(#1419)])] [switch([get(#1419/debug)],1,now,0,no longer)] debugging all.)]
+
+&cmd_+debug`individual #99=[attrib_set(#1419/debug`%0,[not([get(#1419/debug`%0)])])][pemit(%#,[ansi(wh,[name(#1419)])] [switch([get(#1419/debug`%0)],1,now,0,no longer)] debugging [switch(%0,results,+defend results,%0)].)]
+
+
+----+debug/check----
+
+&cmd_+debug/check #99=$+debug/check:think [u(cmd_+debug`individual,+check)]
+
+----+debug/defend----
+
+&cmd_+debug/defend #99=$+debug/defend:think [u(cmd_+debug`individual,+defend)]
+
+----+debug/results----
+
+&cmd_+debug/results #99=$+debug/results:think [u(cmd_+debug`individual,results)]
+
+----+debug/compare----
+
+&cmd_+debug/compare #99=$+debug/compare:think [u(cmd_+debug`individual,compare)]
+
+----+debug/attack----
+
+&cmd_+debug/attack #99=$+debug/attack:think [u(cmd_+debug`individual,attack)]
+
+
+----+debug/buff----
+
+&cmd_+debug/buff #99=$+debug/buff:think [u(cmd_+debug`individual,buff)]
+
+----+debug/damage----
+
+&cmd_+debug/damage #99=$+debug/damage:think [u(cmd_+debug`individual,damage)]

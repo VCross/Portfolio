@@ -1,0 +1,232 @@
+Name: Globals
+Programmer: Vincent Cross (Astrus)
+Date: May 2013
+
+Purpose:
+
+This file contains the global variables related to the combat system.
+
+
+----Globals----
+
+&global`check`dice`num #1419=1
+&global`check`dice`sides #1419=30
+
+&global`check`statskilldiv #1419=2
+&global`check`vstatdiv #1419=8
+
+&global`check`armorpenalty #1419=0.5
+
+&global`check`acebonus #1419=1
+&global`check`sacebonus #1419=2
+
+&global`check`macro`bonus #1419=2
+&global`check`macro`div #1419=8
+
+&global`luckbonus #1419=5
+
+
+&global`gscheck`ve`s #1419=4.5
+&global`gscheck`ve`sk #1419=7
+&global`gscheck`ve`vs #1419=9.5
+
+&global`gscheck`e`s #1419=7.5
+&global`gscheck`e`sk #1419=10
+&global`gscheck`e`vs #1419=12.5
+
+&global`gscheck`n`s #1419=11.5
+&global`gscheck`n`sk #1419=14
+&global`gscheck`n`vs #1419=16.5
+
+&global`gscheck`h`s #1419=17.5
+&global`gscheck`h`sk #1419=20
+&global`gscheck`h`vs #1419=22.5
+
+&global`gscheck`vh`s #1419=23.5
+&global`gscheck`vh`sk #1419=26
+&global`gscheck`vh`vs #1419=28.5
+
+&global`gscheck`i`s #1419=30.5
+&global`gscheck`i`sk #1419=33
+&global`gscheck`i`vs #1419=35.5
+
+&global`precmod #1419=-10
+&global`unorthmod`vehicle #1419=-6
+&global`defendpenalty #1419=0.3
+&global`counterpenalty #1419=0.5
+&global`interbonus #1419=5
+
+&global`dramabonus`1`vs #1419=0
+&global`dramabonus`1`sk #1419=0
+&global`dramabonus`2`vs #1419=5
+&global`dramabonus`2`sk #1419=3
+&global`dramabonus`3`vs #1419=10
+&global`dramabonus`3`sk #1419=6
+
+&global`buff`die`perf #1419=1
+&global`buff`die`amp #1419=2
+&global`buff`sides`perf #1419=6
+&global`buff`sides`amp #1419=6
+&global`buff`calc`statskillmul #1419=0.25
+&global`buff`calc`ampmul #1419=0.1
+&global`buff`calc`supercritbonus #1419=1.5
+&global`buff`window`duration #1419=120
+
+&global`damage`armor`evadepenalty #1419=0.25
+&global`damage`armor`mitigationmax #1419=0.9
+&global`damage`armordegredationtrip #1419=150
+
+atkcs defcf atksupwin defsupwin defcs atkcf
+
+&global`damage`amount`atkcs #1419=50
+&global`damage`amount`defcf #1419=10
+&global`damage`amount`atksupwin #1419=60
+&global`damage`amount`defsupwin #1419=60
+&global`damage`amount`defcs #1419=50
+&global`damage`amount`atkcf #1419=10
+&global`damage`amount`bonusmax #1419=60
+&global`damage`amount`unorthmul #1419=2
+&global`damage`amount`precmul #1419=5
+&global`damage`amount`dualcs #1419=0.25
+&global`damage`amount`dualcf #1419=0.75
+
+----Stats----
+
+&strength #1420=S xy`1
+&str #1420=S xy`1
+&dexterity #1420=S xy`2
+&endurance #1420=S xy`3
+&intelligence #1420=S xy`4
+&int #1420=S xy`4
+&spirit #1420=S xy`5
+&luck #1420=S xy`6
+&lck #1420=S xy`6
+
+----Skills----
+
+&hand_to_hand #1420=SK xy`101
+&101 #1420=SK xy`101
+&h2h #1420=SK xy`101
+&hth #1420=SK xy`101
+&melee_weapons #1420=SK xy`102
+&102 #1420=SK xy`102
+&mw #1420=SK xy`102
+&dodging #1420=SK xy`205
+&205 #1420=SK xy`205
+&firearms #1420=SK xy`206
+&206 #1420=SK xy`206
+&heavy_weapons #1420=SK xy`207
+&207 #1420=SK xy`207
+&hw #1420=SK xy`207
+&defense #1420=SK xy`313
+&313 #1420=SK xy`313
+
+&climbing #1420=SK xy`103
+&103 #1420=SK xy`103
+&leaping #1420=SK xy`104
+&104 #1420=SK xy`104
+&running #1420=SK xy`208
+&208 #1420=SK xy`208
+&concealment #1420=SK xy`209
+&209 #1420=SK xy`209
+
+&gunnery #1420=SK xy`212
+&212 #1420=SK xy`212
+&driving #1420=SK xy`314
+&314 #1420=SK xy`314
+&piloting #1420=SK xy`315
+&315 #1420=SK xy`315
+&star_ship_operation #1420=SK xy`416
+&sso #1420=SK xy`416
+&416 #1420=SK xy`416
+&navigation #1420=SK xy`432
+&432 #1420=SK xy`432
+&electronic_warfare #1420=SK xy`433
+&433 #1420=SK xy`433
+&ew #1420=SK xy`433
+
+&computers #1420=SK xy`434
+&434 #1420=SK xy`434
+&cooking #1420=SK xy`425
+&425 #1420=SK xy`425
+&fishing #1420=SK xy`426
+&426 #1420=SK xy`426
+&gambling #1420=SK xy`427
+&427 #1420=SK xy`427
+&infiltration #1420=SK xy`428
+&429 #1420=SK xy`429
+&mechanical #1420=SK xy`429
+&medical #1420=SK xy`430
+&430 #1420=SK xy`430
+&security #1420=SK xy`431
+&431 #1420=SK xy`431
+&artistry #1420=SK xy`210
+&210 #1420=SK xy`210
+&pickpocketing #1420=SK xy`211
+&211 #1420=SK xy`211
+
+&gossip #1420=SK xy`417
+&417 #1420=SK xy`417
+&history #1420=SK xy`418
+&418 #1420=SK xy`418
+&interplanetary_history #1420=SK xy`419
+&419 #1420=SK xy`419
+&ih #1420=SK xy`419
+&languages #1420=SK xy`420
+&420 #1420=SK xy`420
+&politics #1420=SK xy`421
+&421 #1420=SK xy`421
+&streetwise #1420=SK xy`422
+&422 #1420=SK xy`422
+
+&advertising #1420=SK xy`424
+&424 #1420=SK xy`424
+&dancing #1420=SK xy`533
+&533 #1420=SK xy`533
+&musical_instruments #1420=SK xy`534
+&534 #1420=SK xy`534
+&mi #1420=SK xy`534
+&singing #1420=SK xy`535
+&sing #1420=SK xy`535
+&535 #1420=SK xy`535
+&acting #1420=SK xy`536
+&536 #1420=SK xy`536
+
+&absorption #1420=SK xy`537
+&537 #1420=SK xy`537
+&attack #1420=SK xy`538
+&538 #1420=SK xy`538
+&shield #1420=SK xy`539
+&539 #1420=SK xy`539
+&generation #1420=SK xy`540
+&540 #1420=SK xy`540
+&healing #1420=SK xy`541
+&541 #1420=SK xy`541
+&enhance #1420=SK xy`542
+&542 #1420=SK xy`542
+
+
+----Vehicle Stats----
+
+&armor #1420=VS xy`a
+&targeting #1420=VS xy`b
+&speed #1420=VS xy`c
+&intercept #1420=VS xy`d
+&stealth #1420=VS xy`e
+&sensors #1420=VS xy`f
+&spiritia_amp. #1420=VS xy`g
+
+&armor`skill #1420=xy`313
+&xy`a`skill #1420=xy`313
+&armor`capskill #1420=xy`416
+&xy`a`capskill #1420=xy`416
+&speed`skill #1420=xy`315
+&speed`capskill #1420=xy`416
+&xy`c`skill #1420=xy`315
+&xy`c`capskill #1420=xy`416
+&intercept`skill #1420=xy`212
+&xy`d`skill #1420=xy`212
+&stealth`skill #1420=xy`209
+&xy`e`skill #1420=xy`209
+&sensors`skill #1420=xy`433
+&xy`f`skill #1420=xy`433

@@ -1,0 +1,243 @@
+Name: Defend Result
+Programmer: Vincent Cross (Astrus)
+Date: June 2013
+
+Outline:
+
+The point of the code in this file is to take the results from the +defend command and turn them into results messages that the players can make sense of.
+	
+From written examples of messages, we can break them up into sections. First there is the beginning. It is a relatively standard message as can be seen:
+
+Astrus attempts to evade Bob's normal attack
+Astrus attempts to defend against Bob's normal attack
+Astrus attempts to intercept Bob's normal attack
+Astrus attempts to counter Bob's normal attack
+
+Which can be broken down into:
+
+%N attempts to [switch(<path>,defend,defend against,<path>)] %N's [switch(<type>,unorth,unorthodox,prec,precision,<type>)] attack
+
+Next is the outcome of the compare. These are the possible outcomes:
+
+Defender Wins (defwin)
+Defender Crit Wins (defcs)
+Defender SuperCrit Wins (defsupwin)
+Defender Crit Loses (defcf)
+Attacker Wins (atkwin)
+Attacker Crit Wins (atkcs)
+Attacker SuperCrit Wins (atksupwin)
+Attacker Crit Loses (atkcf)
+Dual CritSuccesses (dualcs)
+Dual CritFails (dualcf)
+Draw (draw)
+
+Finally there is the result, which is dependant on the outcome and type of attack:
+
+avoiding his <weapon>.
+getting hit with it.
+hitting with his <weapon>.
+so weird stuff happens.
+
+Due to the fact the result is dependant upon the defend type, outcome and attack type, it will likely be necessary to generate a somewhat unique message for each one. Though naturally some will be duplicates and can be coded as such. A tree structure will be used in the form of <defend type>`<attack type>`<outcome>:
+
+#&defend`result`result`evade`normal`defwin #1419=
+#&defend`result`result`evade`normal`defcs #1419=
+#&defend`result`result`evade`normal`defsupwin #1419=
+#&defend`result`result`evade`normal`defcf #1419=
+#&defend`result`result`evade`normal`atkwin #1419=
+#&defend`result`result`evade`normal`atkcs #1419=
+#&defend`result`result`evade`normal`atksupwin #1419=
+#&defend`result`result`evade`normal`atkcf #1419=
+#&defend`result`result`evade`normal`dualcs #1419=
+#&defend`result`result`evade`normal`dualcf #1419=
+#&defend`result`result`evade`normal`draw #1419=
+
+
+Registers:
+
+	attackattrib - The attribute containing the information about the attack
+	callingResult - The result of the defender in format (VS xy`c|#619|16.625)
+	callingRoll - The base roll of the defender.
+	targetResult - The result of the attacker in format (VS xy`b|#679|36.125)
+	targetRoll - The base roll of the defender
+	
+	results - The results of the dramatic attack in format:
+		(defenderResult1>attackerResult1>defenderResult2>attackerResult2>defenderResult3>attackerResult3)
+		Result format: <type> <stat>|<dbref>|<result>|<roll>
+		
+++++Code++++
+
+----defend`result----
+
+The main run of the +defend results code. First determines the outcome, then splits the code up by attack type and then outcome.
+
+&defend`result`1 #1419=[u(defend`result`outcome,%q<callingResult>|%q<callingRoll>,%q<targetResult>|%q<targetRoll>)]
+
+&defend`result`2 #1419=[if([get(#1419/debug`results)],[u(#1419/func`cango,#1419/defend`result`debug)])][u(defend`result`message)]
+
+
+----defend`result`outcome----
+
+Compares the results from the registers to determine the outcome of the compare, saving it in a register.
+
+In: 
+	%0 - callingResult in format <type> <xy>|<dbref>|<result>|<roll>
+	%1 - targetResult in format <type> <xy>|<dbref>|<result>|<roll>
+
+Out:
+	outcome - Contains the single word outcome as described above.
+	
+&defend`result`outcome #1419=[setq(outcome,[switch([last(%0,|)]|[last(%1,|)],1|[u(global`check`dice`sides)],defsupwin,[u(global`check`dice`sides)]|1,atksupwin,1|1,dualcf,[u(global`check`dice`sides)]|[u(global`check`dice`sides)],dualcs,1|*,defcf,[u(global`check`dice`sides)]|*,defcs,*|1,atkcf,*|[u(global`check`dice`sides)],atkcs,[u(defend`result`outcome`compare,%0,%1)])])]
+
+&defend`result`outcome`compare #1419=[if([gt([elements(%0,3,|)],[elements(%1,3,|)])],defwin,[if([lt([elements(%0,3,|)],[elements(%1,3,|)])],atkwin,draw)])]
+
+
+----defend`result`message----
+
+This section of the code is dedicated to building and sending the result message.
+
+&defend`result`message #1419=[remit([u(check`result`destination)],[ansi([u(color`defend)],[u(defend`result`message`run)])])]
+
+&defend`result`message`run #1419=[u(defend`result`message`begin)][u(defend`result`message`outcome)][u(defend`result`message`result)]
+
+
+----defend`result`message`begin----
+
+Responsible for building the start of the message based upon the defense path.
+
+Registers:
+	path - Contains the type of defense being done by the defender.
+	targetResult - To get the dbref of the attacker
+	attackattrib - To get the type of attack
+
+&defend`result`message`begin #1419=[ansi([u(color`defend`name)],%N)] attempts to [switch(%q<path>,defend,defend against,inter,intercept,%q<path>)] [ansi([u(color`defend`name)],[name([elements(%q<targetResult>,2,|)])])]'s [switch([get(%#/%q<attackattrib>`type)],unorth,unorthodox,prec,precision,[get(%#/%q<attackattrib>`type)])] attack
+
+
+----defend`result`message`outcome----
+
+A small section of code to report the outcome of the defense.
+
+Registers:
+	outcome - The outcome of the compare. (defwin, defcs, defsupwin, defcf, atkwin, atkcs, atksupwin, atkcf, dualcs, dualcf, draw)
+
+	
+&defend`result`message`outcome #1419=[u(defend`result`message`outcome`%q<outcome>)]
+
+&defend`result`message`outcome`defwin #1419=%band succeeds[switch(%q<path>,defend,%bin evading)]
+&defend`result`message`outcome`defcs #1419=%band [ansi([u(color`cs)],Critically Succeeds)]
+&defend`result`message`outcome`defsupwin #1419=%band succeeds with a [ansi([u(color`sc)],Super Critical)]
+&defend`result`message`outcome`defcf #1419=%band [ansi([u(color`cf)],Critically Fails)]
+
+&defend`result`message`outcome`atkwin #1419=%b[switch(%q<path>,defend,and fails to evade,but fails)]
+&defend`result`message`outcome`atkcs #1419=%bbut [ansi([u(color`defend`name)],[name([elements(%q<targetResult>,2,|)])])] [ansi([u(color`cs)],Critically Succeeds)]
+&defend`result`message`outcome`atksupwin #1419=%bbut fails against [ansi([u(color`defend`name)],[name([elements(%q<targetResult>,2,|)])])]'s [ansi([u(color`sc)],Super Critical)]
+&defend`result`message`outcome`atkcf #1419=%band [ansi([u(color`defend`name)],[name([elements(%q<targetResult>,2,|)])])] [ansi([u(color`cf)],Critically Fails)]
+
+&defend`result`message`outcome`dualcs #1419=%band both [ansi([u(color`cs)],Critically Succeed)]
+&defend`result`message`outcome`dualcf #1419=%band both [ansi([u(color`cf)],Critically Fail)]
+&defend`result`message`outcome`draw #1419=%band both draw
+
+
+----defend`result`message`result----
+
+A much larger section of code dedicated to finishing the message and reporting the result of the defense. While some may be duplicates, a lot will be customised to the type of attack and outcome of the defense.
+
+Registers:
+	path - The type of defense (evade, defend, inter, counter)
+	attackattrib - To get info such as type of attack (normal, unorth, aoe, prec, h2h) and weapon info
+	outcome - The outcome of the defense (defwin, defcs, defsupwin, defcf, atkwin, atkcs, atksupwin, atkcf, dualcs, dualcf, draw)
+	targetResult - To get the attacker's name
+	counterweapon - The weapon number to counter with
+	outcomemessage - 
+
+&defend`result`message`result #1419=[switch(%q<path>,counter,[u(defend`result`message`result`counter`%q<outcome>)],[u(defend`result`message`result`%q<outcome>)])]
+
+&defend`result`message`result`atktype #1419=[switch([get(%#/%q<attackattrib>`type)],unorth,it%1,%0)]
+
+&defend`result`message`result`prec #1419=[switch([get(%#/%q<attackattrib>`type)],prec,%bwith critical damage)]
+
+Most:
+
+&defend`result`message`result`defwin #1419=[,] avoiding [u(defend`result`message`result`atktype,[u(defend`result`atkname)]'s [u(defend`result`atkweapon)].,.)]
+&defend`result`message`result`defcs #1419=[u(defend`result`message`result`defwin)]
+&defend`result`message`result`defsupwin #1419=[u(defend`result`message`result`defwin)]
+&defend`result`message`result`defcf #1419=[,] being hit by [u(defend`result`message`result`atktype,[u(defend`result`atkname)]'s [u(defend`result`atkweapon)][u(defend`result`message`result`prec)])]%q<outcomemessage>
+&defend`result`message`result`atkwin #1419=[u(defend`result`message`result`defcf)]
+&defend`result`message`result`atkcs #1419=%band hits with [u(defend`result`message`result`atktype,[poss([elements(%q<targetResult>,2,|)])] [u(defend`result`atkweapon)][u(defend`result`message`result`prec)])]%q<outcomemessage>
+&defend`result`message`result`atksupwin #1419=%bwho hits with [u(defend`result`message`result`atktype,[poss([elements(%q<targetResult>,2,|)])] [u(defend`result`atkweapon)][u(defend`result`message`result`prec)])]%q<outcomemessage>
+&defend`result`message`result`atkcf #1419=%bso misses with [u(defend`result`message`result`atktype,[poss([elements(%q<targetResult>,2,|)])] [u(defend`result`atkweapon)])].
+&defend`result`message`result`dualcs #1419=[,]%q<outcomemessage>
+&defend`result`message`result`dualcf #1419=[,]%q<outcomemessage>
+&defend`result`message`result`draw #1419=[,] so [ansi([u(color`defend`name)],%N)] avoids [u(defend`result`message`result`atktype,[u(defend`result`atkname)]'s [u(defend`result`atkweapon)])]
+
+
+Counter:
+
+&defend`result`message`result`counter`defwin #1419=[,] hitting [u(defend`result`atkname)] with %p [u(defend`result`cweapon)]%q<outcomemessage>
+&defend`result`message`result`counter`defcs #1419=[u(defend`result`message`result`counter`defwin)]
+&defend`result`message`result`counter`defsupwin #1419=[u(defend`result`message`result`counter`defwin)]
+&defend`result`message`result`counter`defcf #1419=[,] missing with %p [u(defend`result`cweapon)] and being hit by [u(defend`result`atkname)]'s [switch([get(%#/%q<attackattrib>`type)],unorth,attack,[u(defend`result`atkweapon)])]%q<outcomemessage>
+&defend`result`message`result`counter`atkwin #1419=[u(defend`result`message`result`counter`defcf)]
+&defend`result`message`result`counter`atkcs #1419=[,] avoiding [ansi([u(color`defend`name)],%N)]'s [u(defend`result`cweapon)] and hitting with [poss([elements(%q<targetResult>,2,|)])] [switch([get(%#/%q<attackattrib>`type)],unorth,attack,[u(defend`result`atkweapon)])]%q<outcomemessage>
+&defend`result`message`result`counter`atksupwin #1419=[u(defend`result`message`result`counter`atkcs)]
+&defend`result`message`result`counter`atkcf #1419=[,] being hit by [ansi([u(color`defend`name)],%N)]'s [u(defend`result`cweapon)]%q<outcomemessage>
+&defend`result`message`result`counter`dualcs #1419=[,]%q<outcomemessage>
+&defend`result`message`result`counter`dualcf #1419=[,]%q<outcomemessage>
+&defend`result`message`result`counter`draw #1419=[,] so [ansi([u(color`defend`name)],%N)] hits with %p [u(defend`result`cweapon)]%q<outcomemessage>
+
+
+&defend`result`atkname #1419=[ansi([u(color`defend`name)],[name([get(%#/%q<attackattrib>)])])]
+&defend`result`atkweapon #1419=[ansi([u(color`defend`weapons)],[get(%#/%q<attackattrib>`weapons)])]
+&defend`result`cweapon #1419=[ansi([u(color`defend`weapons)],[elements([u(func`getweapon,%q<counterweapon>)],2,|)])]
+
+
+----Dramatic Attacks----
+
+Creating detailed messages for dramatic attacks would be fairly difficult and require a lot of code. So the results message for dramatic attacks will need to be fairly standard.
+
+Registers:
+		results - The results of the dramatic attack in format:
+		(defenderResult1>attackerResult1>defenderResult2>attackerResult2>defenderResult3>attackerResult3)
+		Result format: <type> <stat>|<dbref>|<result>|<roll>
+		
+		methods - The methods of defense in format: (e d c:3)
+
+Out:
+	outcomes - A space separated list of the outcomes.
+
+&defend`result`drama #1419=[remit([u(check`result`destination)],[ansi([u(color`defend)],[u(defend`result`drama`attack,1)]%r[u(defend`result`drama`attack,2)]%r[u(defend`result`drama`attack,3)])])][if([get(#1419/debug`results)],[u(#1419/func`cango,#1419/defend`result`debug)])]
+
+&defend`result`drama`attack #1419=[ansi([u(color`defend`name)],%N)] attempts to [switch([elements(%q<methods>,%0)],e,evade,d,defend against,i,intercept,c*,counter)] [u(defend`result`atkname)]'s [u(defend`result`drama`atkweapon,%0)][switch([elements(%q<methods>,%0)],c*,%bwith %p [ansi([u(color`defend`weapons)],[elements([u(func`getweapon,%q<counter%0>)],2,|)])])] and [u(defend`result`drama`outcome,%0)]
+
+&defend`result`drama`outcome #1419=[u(defend`result`drama`outcome`[elements(%q<outcomes>,%0)],%0)]
+
+&defend`result`drama`outcome`defwin #1419=succeeds[if([match([elements(%q<methods>,%0)],c:*)],%bhitting [ansi([u(color`defend`name)],[name([get(%#/%q<attackattrib>)])])][u(defend`result`drama`outcome`check,%0)],.)]
+&defend`result`drama`outcome`defcs #1419=[ansi([u(color`cs)],Critically Succeeds)][switch(%q<path>,counter,[,]%bhitting [ansi([u(color`defend`name)],[name([get(%#/%q<attackattrib>)])])])][u(defend`result`drama`outcome`check,%0)]
+&defend`result`drama`outcome`defsupwin #1419=succeeds with a [ansi([u(color`sc)],Super Critical)]![u(defend`result`drama`outcome`check,%0)]
+&defend`result`drama`outcome`defcf #1419=[ansi([u(color`cf)],Critically Fails)][u(defend`result`drama`outcome`check,%0)]
+&defend`result`drama`outcome`atkwin #1419=fails, being hit[u(defend`result`drama`outcome`check,%0)]
+&defend`result`drama`outcome`atkcs #1419=fails against [u(defend`result`atkname)]'s [ansi([u(color`cs)],Critical Success)][u(defend`result`drama`outcome`check,%0)]
+&defend`result`drama`outcome`atksupwin #1419=fails against [u(defend`result`atkname)]'s [ansi([u(color`sc)],Super Critical)][u(defend`result`drama`outcome`check,%0)]
+&defend`result`drama`outcome`atkcf #1419=succeeds when [u(defend`result`atkname)] [ansi([u(color`cf)],Critically Fails)][switch(%q<path>,counter,[,]%bhitting [ansi([u(color`defend`name)],[name([get(%#/%q<attackattrib>)])])][u(defend`result`drama`outcome`check,%0)],.)]
+&defend`result`drama`outcome`dualcs #1419=both [ansi([u(color`cs)],Critically Succeed)].[u(defend`result`drama`outcome`check,%0)]
+&defend`result`drama`outcome`dualcf #1419=both [ansi([u(color`cf)],Critically Fail)].[u(defend`result`drama`outcome`check,%0)]
+&defend`result`drama`outcome`draw #1419=succeeds when both draw.[u(defend`result`drama`outcome`check,%0)]
+
+
+&defend`result`drama`atkweapon #1419=[ansi([u(color`defend`weapons)],[elements([get(%#/%q<attackattrib>`weapon%0)],2,|)])]
+
+&defend`result`drama`createoutcomes #1419=[u(defend`result`outcome,[elements(%q<results>,[sub([mul(%0,2)],1)],>)],[elements(%q<results>,[mul(%0,2)],>)])][switch(%0,1,[setq(outcomes,%q<outcome>)],[setq(outcomes,%q<outcomes> %q<outcome>)])]
+
+&defend`result`drama`outcome`check #1419=[switch([elements(%q<dramaoutcomemessages>,%0,|)],null,.,[elements(%q<dramaoutcomemessages>,%0,|)])]
+
+----debug----
+
+Deals with the various debugging information for the defend results.
+
+&defend`result`debug #1419=[pemit(%#,[ansi(mh,--Results Debug--)]%r[u(defend`result`debug`main)])]
+
+&defend`result`debug`main #1419=[u(defend`result`debug`outcome)]%r[u(defend`result`debug`registers)]
+
+&defend`result`debug`outcome #1419=[switch([get(%#/%q<attackattrib>`type)],drama,Methods: %q<methods>%rOutcomes: %q<outcomes>,Outcome: %q<outcome>)]
+
+&defend`result`debug`registers #1419=Registers: [listq()]

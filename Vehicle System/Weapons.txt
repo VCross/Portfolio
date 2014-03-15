@@ -1,0 +1,130 @@
+WFD = #1166
+Hangar Terminal Parent = #1091
+
+yz`11 = Max HArdpoints
+yz`11`c = Remaining Hardpoints
+yz`3 = FAST Pack
+
+wx`p = Personal weapons
+
+R = Ranged
+M = Missile
+C = Melee
+H = H2H
+
+********************H2H damage with vehicles. Barriers on anything other than VFs/capships
+
+Extract: (current ammo) 7 + 9 * (weapon number)
+
+Type|Name|Accuracy|Damage Type|Damage|Max Ammo|Current Ammo|Ammo Use|Internal/Hardpoint/FAST
+
+Type: R or M or C or H
+
+Field 6 (Max Ammo) N/A = I
+Field 8 (Ammo use) N/A = 0
+
+(internal)
+&WX`I #926=H|Unused|0|HP|0|I|I|0|I^R|Gunpod|-3|HP|25|1500|1500|10|I^C|Bayonet|-1|HP|15|I|I|0|I^M|Micro-Missiles|3|HP|30|64|64|6|I^R|Macross Cannon|1|HP|10000|1|1|1|I
+
+(hardpoint)
+&wx`H #926=M|Anti-Ship Torpedo|5|HP|100000|6|6|1|H:XY`C>-1 XY`E>1
+
+(fastpack)
+Name|Armor|Stat Mods
+
+&yz`3 #926=Armor|2000|XY`A>5 XY`C>-3
+&yz`4 #926=2000
+&yz`4`c #926=2000
+
+(fast pack weapons)
+&wx`f #926=M|Micro-Missiles|6|HP|60|128|128|12|F^M|SRM|5|HP|35|12|12|1|F
+
+Actual Damage = ((Weapon damage * level) * 1d10 percentage) * 100 - armor percentage
+If damage > 150 & armor > armor/2 : armor - 2
+
+
+-----Adding Internal-----
+
+Armory: #1211
+
+a : Vehicle dbref
+
+&cmd_addinternal #1211=$+addinternal *=*:think [if([or([hasattrval([setr(a,%0)],vehicle)],[hasattrval([setr(a,%0)],carrier)])],[switch([words([get(%qa/wx`i)],^)],0,[set(%qa,wx`i:%1)],[set(%qa,wx`i:[get(%qa/wx`i)]^%1)])][pemit(%#,Weapon added to %qa.)],[pemit(%#,Error, cannot find that vehicle.)]
+
+
+
+-----Delete Internal-----
+
+&cmd_delinternal #1211=$+delinternal *:think [if([or([hasattrval([setr(a,%0)],vehicle)],[hasattrval([setr(a,%0)],carrier)])],[switch([words([get(%qa/wx`i)],^)],1,[attrib_set(%qz/wx`i)],0,,[set(%qa,wx`i:[ldelete([get(%qa/wx`i)],[words([get(%qa/wx`i)],^)],^)])])][pemit(%#,Last internal weapon deleted from %qa.)],[pemit(%#,Error, cannot find that vehicle.)]
+
+-----Create Hardpoint-----
+
+a: next hardpoint attribute
+b: list of existing hardpoints
+c: numbered list
+
+&hardpoint`list`1 #1091=M|Anti-Ship Torpedo|5|HP|100000|6|6|1|H:XY`C>-1 XY`E>1
+
+&cmd_addhardpoint #1211=$+addhardpoint *:think [setq(b,[lattr(#1091/hardpoint`list`*)])][setq(c,[iter([lattr(#1091/hardpoint`list`*)] x,HARDPOINT`LIST`#@)])][setq(a,[first([setdiff(%qc,%qb)])])];think [set(#1091,%qa:%0)];think [pemit(%#,New hardpoint weapon added to list.)]
+
+-----List Hardpoint-----
+
+&cmd_listhardpoint #1211=$+listhardpoint:think [pemit(%#,[ansi(yh,Hardpoint List:)]%r[iter([lattr(#1091/hardpoint`list`*)],[last(##,`)]: [get(#1091/##)],,%r)])]
+
+-----Remove Hardpoint-----
+
+&cmd_delhardpoint #1211=$+delhardpoint *:think [if([hasattrval(#1091,hardpoint`list`%0)],[attrib_set(#1091/hardpoint`list`%0)][pemit(%#,Hardpoint deleted from list.)],[pemit(%#,Error, that hardpoint is not in the list.)])]
+
+-----Create FAST Pack-----
+
+&pack`list`1 #1091=Armor|2000|XY`A>5 XY`C>-3
+
+&cmd_addpack #1211=$+addpack *:think [setq(b,[lattr(#1091/pack`list`*)])][setq(c,[iter([lattr(#1091/pack`list`*)] x,PACK`LIST`#@)])][setq(a,[first([setdiff(%qc,%qb)])])];think [set(#1091,%qa:%0)];think [pemit(%#,New pack added to list.)]
+
+-----List Packs-----
+
+&cmd_listpack #1211=$+listpack:think [pemit(%#,[ansi(yh,Pack List:)]%r[iter([lattr(#1091/pack`list`*)],[last(##,`)]: [get(#1091/##)][if([nattr(#1091/pack`list`[last(##,`)]`*)],[iter([lattr(#1091/pack`list`[last(##,`)]`*)],%r%t[last([itext(0)],`)]: [get(#1091/[itext(0)])])])],,%r)])]
+
+[if([nattr(#1091/pack`list`[last(##,`)]`*)],[iter([lattr(#1091/pack`list`[last(##,`)]`*)],%r%t[last(##,`)]: [get(#1091/##)])])]
+
+-----Remove Pack-----
+
+&cmd_delpack #1211=$+delpack *:think [if([hasattrval(#1091,pack`list`%0)],[wipe(#1091/pack`list`%0)][pemit(%#,Pack deleted from list.)],[pemit(%#,Error, that pack is not in the list.)])]
+
+-----Add weapon to pack-----
+
+&pack`list`1`1 #1091=M|Micro-Missiles|6|HP|60|128|128|12|F
+&pack`list`1`2 #1091=M|SRM|5|HP|35|12|12|1|F
+
+&cmd_addpackweapon #1211=$+addpackweapon *=*:think [if([hasattrval(#1091,pack`list`%0)],[setq(b,[lattr(#1091/pack`list`%0`*)])][setq(c,[iter([lattr(#1091/pack`list`%0`*)] x,PACK`LIST`%0`#@)])][setq(a,[first([setdiff(%qc,%qb)])])];think [set(#1091,%qa:%1)];think [pemit(%#,New weapon added to pack %0.)],[pemit(%#,Error, that pack is not in the list.)]
+
+-----Remove weapon from pack-----
+
+
+&cmd_delpackweapon #1211=$+delpackweapon *=*:think [if([hasattrval(#1091,pack`list`%0`%1)],[attrib_set(#1091/pack`list`%0`%1)][pemit(%#,Pack weapon deleted from pack %0.)],[pemit(%#,Error, cannot find that pack and/or weapon.)])]
+
+
+
+-------Help Files---------
+
++addhelp/admin Armory=----------------------%rAstrus' Vehicle Armory%r----------------------%r%rThis object is used to manage the weapons that are available for vehicles. This includes things like FAST packs. There are two sections to this object. The first is vehicle internal weapons. This object adds them to the vehicles. The second is the remaining weapons, hardpoint and FAST packs. The Armory is used to add these to the master lists, so they can be added by players to their vehicles through the hangar terminals.%r%r----------------------%rThe layout for weapons, as well as a few examples:%r%rType|Name|Accuracy|Damage Type|Damage|Max Ammo|Current Ammo|Ammo Use|Internal/Hardpoint/FAST%r%rType: R - Ranged, M - Missile, C - Melee, H - H2H%rDamage Type: HP or SP(not yet implemented)%rInternal/Hardpoint/FAST: I - Internal, F - FAST Pack, H - Hardpoint%rAmmo: If the weapon has infinite ammo (melee weapons, energy weapons) use 'I' for Max/Current Ammo and '0' (zero) for Ammo Use.%r%rNote that Hardpoints have additional information in the final field. They include a vehicle stat, along with how they alter it. The format is Stat>Number, with the list seperated by spaces.%r%rR|Gunpod|-3|HP|25|1500|1500|10|I%rM|LRM|5|HP|1000|6|6|1|H:XY`C>-1 XY`A>-1%r%r[ansi(ch,&hardpointspace <vehicle>=<number>)] -  Sets the maximum number of hardpoints a vehicle can equip.%r%r----------------------%rThe layout for FAST packs, as well as an example:%r%rName|Armor Amount|Stat Mods%r%rStat Mods works just like the Hardpoints above.%r%rArmor|2000|XY`A>5 XY`C>-3%r%rFAST packs use weapons just like Internal and Hardpoint:%rM|Micro-Missiles|6|HP|60|128|128|12|F%r%r----------------------%rBelow are the commands for the armory. See their [ansi(ch,+help)] on how to use them properly.%r%r[ansi(ch,+addinternal%r+delinternal%r+addhardpoint%r+delhardpoint%r+listhardpoint%r+addpack%r+delpack%r+listpack%r+addpackweapon%r+delpackweapon)]
+
++addhelp/n +addinternal=[ansi(ch,+addinternal <vehicle dbref>=<weapon>)]%r%rUsed to add internal weapons to a vehicle. The order they show in +vsheet is the order you add them in.%r%r[ansi(rh,THE FIRST WEAPON MUST ALWAYS BE A H2H WEAPON)] - If the vehicle doesn't have anything that makes sense to be a H2H weapon, then simply use [ansi(ch,H|Unused|0|HP|0|I|I|0|I)] for the first weapon. If someone does choose this, it won't do any damage.
+
++addhelp/n +delinternal=[ansi(ch,+delinternal <vehicle dbref>)]%r%rDeletes the internal weapon on the end of the list (the most recently added).
+
++addhelp/n +addhardpoint=[ansi(ch,+addhardpoint <weapon>)]%r%rType|Name|Accuracy|Damage Type|Damage|Max Ammo|Current Ammo|Ammo Use|Hardpoint%r%rM|LRM|5|HP|1000|6|6|1|H:XY`C>-1 XY`A>-1%r%rAdds the hardpoint weapon to the master list. More info about the layout of the weapon can be found in [ansi(yh,+ahelp Armory)]. Below is a list of vehicle attributes:%r%rXY`A - Armor%rXY`B - Targeting%rXY`C - Speed%rXY`D - Intercept%rXY`E - Stealth%rXY`F - Sensors%rXY`G - Spiritia Amp.
+
++addhelp/n +listhardpoint=[ansi(ch,+listhardpoint)]%r%rThe current master list of hardpoints.
+
++addhelp/n +delhardpoint=[ansi(ch,+delhardpoint <number>)]%r%rDeletes the selected hardpoint from the master list.
+
++addhelp/n +addpack=[ansi(ch,+addpack <pack>)]%r%rName|Armor Amount|Stat Mods%r%rArmor|2000|XY`A>5 XY`C>-3%r%rAdds the FAST pack to the master list. Below is a list of vehicle attributes:%r%rXY`A - Armor%rXY`B - Targeting%rXY`C - Speed%rXY`D - Intercept%rXY`E - Stealth%rXY`F - Sensors%rXY`G - Spiritia Amp.
+
++addhelp/n +delpack=[ansi(ch,+delpack <pack>)]%r%rRemoves the selected pack and all its weapons from the master list.
+
++addhelp/n +listpack=[ansi(ch,+listpack)]%r%rLists all the current packs along with the weapons they are fitted with.
+
++addhelp/n +addpackweapon=[ansi(ch,+addpackweapon <pack number>=<weapon>)]%r%rType|Name|Accuracy|Damage Type|Damage|Max Ammo|Current Ammo|Ammo Use|FAST%r%rM|Micro-Missiles|6|HP|60|128|128|12|F%r%rAdds the weapon to the specified pack in the master list.
+
++addhelp/n +delpackweapon=[ansi(ch,+delpackweapon <pack number>=<weapon number>)]%r%rDeletes the specified weapon from the specified pack.
